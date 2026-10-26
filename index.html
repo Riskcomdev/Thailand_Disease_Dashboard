@@ -16,3 +16,1455 @@ for(const p of document.querySelectorAll('.province')){p.addEventListener('point
 selector.addEventListener('change',()=>select(selector.value));let zoom=1,center=[257.5,435];function redraw(){const w=545/zoom,h=890/zoom;map.setAttribute('viewBox',`${center[0]-w/2} ${center[1]-h/2} ${w} ${h}`);tip.hidden=true;}
 document.getElementById('plus').onclick=()=>{zoom=Math.min(zoom*1.5,5);const p=document.querySelector('.province.selected');if(p){const b=p.getBBox();center=[b.x+b.width/2,b.y+b.height/2];}redraw();};document.getElementById('minus').onclick=()=>{zoom=Math.max(1,zoom/1.5);if(zoom===1)center=[257.5,435];redraw();};document.getElementById('reset').onclick=()=>{zoom=1;center=[257.5,435];redraw();};document.addEventListener('keydown',e=>{if(e.key==='Escape')tip.hidden=true;});
 </script></body></html>
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEMO ร่างระบบ แผนที่ประเทศไทย รายจังหวัด: 5 อันดับโรคเฝ้าระวัง & ค้นหาสื่อ DataRiskCom กรมควบคุมโรค</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
+  <style>
+    :root {
+      --bg-page: #f1f5f9;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border: #e2e8f0;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --primary-light: #ccfbf1;
+      --accent: #0284c7;
+      --warn-bg: #fffbeb;
+      --warn-border: #fde68a;
+      --warn-text: #92400e;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.14), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Sarabun', 'Prompt', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+    .topbar {
+      background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
+      color: #ffffff;
+      padding: 16px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .topbar-title h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .topbar-title p {
+      font-size: 0.86rem;
+      opacity: 0.92;
+      margin-top: 2px;
+    }
+    .topbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .btn-white {
+      background: #ffffff;
+      color: #0f766e;
+    }
+    .btn-white:hover {
+      background: #f0fdfa;
+    }
+    .btn-outline-white {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+    .btn-outline-white:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-secondary {
+      background: #f8fafc;
+      color: var(--text-main);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    .notice-bar {
+      background: var(--warn-bg);
+      border-bottom: 1px solid var(--warn-border);
+      color: var(--warn-text);
+      padding: 10px 24px;
+      font-size: 0.84rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .notice-bar a {
+      color: #b45309;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 18px 24px 36px;
+    }
+    .toolbar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .input-control, .select-control {
+      padding: 7px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      background: #ffffff;
+      color: var(--text-main);
+    }
+    .input-control:focus, .select-control:focus {
+      outline: 2px solid #0d9488;
+      border-color: transparent;
+    }
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .map-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+    .map-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #f8fafc;
+    }
+    .map-card-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .map-viewport {
+      position: relative;
+      width: 100%;
+      height: 740px;
+      background: radial-gradient(circle at 50% 45%, #f8fafc 0%, #e2e8f0 100%);
+      overflow: hidden;
+      user-select: none;
+    }
+    #thailand-svg {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+    #thailand-svg:active {
+      cursor: grabbing;
+    }
+    .province-path {
+      stroke: #ffffff;
+      stroke-width: 1.1px;
+      stroke-linejoin: round;
+      transition: fill 0.15s ease, filter 0.15s ease, stroke-width 0.15s ease;
+      cursor: pointer;
+    }
+    .province-path:hover, .province-path.active {
+      stroke: #0f172a;
+      stroke-width: 2.2px;
+      filter: brightness(0.92) drop-shadow(0 2px 6px rgba(15, 23, 42, 0.25));
+    }
+    .province-path.dimmed {
+      opacity: 0.28;
+    }
+    .province-dot {
+      fill: #0f172a;
+      stroke: #ffffff;
+      stroke-width: 1px;
+      pointer-events: none;
+      opacity: 0.65;
+    }
+    .province-label {
+      font-size: 8.5px;
+      font-weight: 600;
+      fill: #1e293b;
+      text-anchor: middle;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: rgba(255, 255, 255, 0.88);
+      stroke-width: 2.4px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .map-controls {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+    .map-ctrl-btn {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      text-align: left;
+    }
+    .map-ctrl-btn:hover {
+      background: #ffffff;
+      border-color: #0f766e;
+      color: #0f766e;
+    }
+    .map-legend {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+      max-width: 220px;
+    }
+    .map-legend h4 {
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 3px;
+    }
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,0.15);
+      flex-shrink: 0;
+    }
+    .hover-tooltip {
+      position: absolute;
+      z-index: 30;
+      width: 315px;
+      background: rgba(255, 255, 255, 0.98);
+      border: 2px solid #0f766e;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      padding: 12px 14px;
+      pointer-events: auto;
+      display: none;
+      transition: opacity 0.12s ease;
+    }
+    .hover-tooltip.visible {
+      display: block;
+    }
+    .tooltip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+    .tooltip-prov-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f766e;
+    }
+    .tooltip-prov-meta {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+    .tooltip-pin-badge {
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #475569;
+      cursor: pointer;
+      border: 1px solid #cbd5e1;
+      white-space: nowrap;
+    }
+    .tooltip-pin-badge.pinned {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+    }
+    .tooltip-subtitle {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .disease-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .disease-item-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      text-decoration: none;
+      color: var(--text-main);
+      font-size: 0.83rem;
+      transition: all 0.14s ease;
+    }
+    .disease-item-link:hover {
+      background: #f0fdfa;
+      border-color: #0d9488;
+      color: #0f766e;
+      transform: translateX(2px);
+    }
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .rank-1 { background: #dc2626; }
+    .rank-2 { background: #ea580c; }
+    .rank-3 { background: #d97706; }
+    .rank-4 { background: #0284c7; }
+    .rank-5 { background: #0d9488; }
+    .disease-name-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .disease-name-text {
+      font-weight: 600;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .disease-cases-text {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .search-action-pill {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #0284c7;
+      background: #e0f2fe;
+      padding: 2px 7px;
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .panel-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+    .panel-card .sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .side-disease-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      margin-bottom: 8px;
+      text-decoration: none;
+      color: var(--text-main);
+      transition: all 0.15s ease;
+    }
+    .side-disease-card:hover {
+      background: #f0fdfa;
+      border-color: #0f766e;
+      box-shadow: var(--shadow-sm);
+    }
+    .table-section {
+      margin-top: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 420px;
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+    th, td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    tr:hover td {
+      background: #f1f5f9;
+    }
+    .tbl-disease-chip {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      color: #0f766e;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.79rem;
+    }
+    .tbl-disease-chip:hover {
+      background: #0f766e;
+      color: #ffffff;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal-box {
+      background: #ffffff;
+      border-radius: 14px;
+      max-width: 760px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 22px 24px;
+      box-shadow: var(--shadow-md);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    textarea.paste-area {
+      width: 100%;
+      height: 160px;
+      font-family: monospace;
+      font-size: 0.82rem;
+      padding: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    /* Cross-Platform Responsive Styles (Desktop, Tablet, Mobile) */
+    html {
+      -webkit-text-size-adjust: 100%;
+      scroll-behavior: smooth;
+    }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+    .topbar-title h1 {
+      font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+      line-height: 1.35;
+    }
+    .topbar-title p {
+      font-size: clamp(0.78rem, 1.5vw, 0.86rem);
+    }
+    /* Large screens (Desktop / Widescreen) */
+    @media (min-width: 1280px) {
+      .workspace-grid {
+        grid-template-columns: 1.4fr 1fr;
+      }
+    }
+    /* Tablet & Small Laptop (<= 1024px) */
+    @media (max-width: 1024px) {
+      .container {
+        padding: 14px 16px 28px;
+      }
+      .workspace-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .map-viewport {
+        height: clamp(460px, 68vh, 640px);
+      }
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .toolbar-group {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .toolbar-group .input-control,
+      .toolbar-group .select-control {
+        flex: 1;
+        min-width: 180px;
+      }
+    }
+    /* Mobile & Phablet (<= 640px) */
+    @media (max-width: 640px) {
+      .topbar {
+        padding: 14px 16px;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .topbar-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .topbar-actions .btn {
+        justify-content: center;
+        width: 100%;
+        padding: 10px 12px;
+      }
+      .notice-bar {
+        padding: 10px 16px;
+        font-size: 0.8rem;
+      }
+      .container {
+        padding: 10px 12px 24px;
+      }
+      .toolbar {
+        padding: 12px;
+        gap: 10px;
+      }
+      .toolbar-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+      }
+      .toolbar-group label {
+        margin-top: 2px;
+      }
+      .input-control, .select-control {
+        width: 100%;
+        font-size: 0.9rem;
+        padding: 9px 12px;
+      }
+      .map-card-header {
+        padding: 10px 12px;
+      }
+      .map-card-header h2 {
+        font-size: 0.95rem;
+      }
+      .map-viewport {
+        height: 480px;
+      }
+      .map-controls {
+        top: 10px;
+        left: 10px;
+        gap: 5px;
+      }
+      .map-ctrl-btn {
+        padding: 6px 9px;
+        font-size: 0.75rem;
+      }
+      .map-legend {
+        bottom: 10px;
+        left: 10px;
+        padding: 8px 10px;
+        font-size: 0.72rem;
+        max-width: 175px;
+      }
+      /* Dock tooltip cleanly at bottom of map viewport on small screens so it never overflows */
+      .hover-tooltip {
+        width: calc(100% - 20px) !important;
+        left: 10px !important;
+        right: 10px !important;
+        top: auto !important;
+        bottom: 10px !important;
+        max-height: 62%;
+        overflow-y: auto;
+        padding: 10px 12px;
+      }
+      .panel-card {
+        padding: 14px;
+      }
+      .side-disease-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      .side-disease-card .btn {
+        justify-content: center;
+        width: 100%;
+      }
+      .table-section {
+        padding: 14px 12px;
+      }
+      th, td {
+        padding: 8px 9px;
+        font-size: 0.78rem;
+      }
+      .modal-backdrop {
+        padding: 10px;
+      }
+      .modal-box {
+        padding: 16px;
+        max-height: 92dvh;
+      }
+      #edit-prov-form > div {
+        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed var(--border);
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>แผนที่ประเทศไทย รายจังหวัด: 5 อันดับโรคที่พบมาก & ระบบค้นหาสื่อความเสี่ยงกรมควบคุมโรค</h1>
+      <p>ชี้เมาส์ (Hover) ที่จังหวัดเพื่อดู 5 อันดับโรค และคลิกที่ชื่อโรคเพื่อค้นหาสื่อใน <a href="https://datariskcom-ddc.moph.go.th/" target="_blank" rel="noopener" style="color:#a7f3d0;text-decoration:underline;">datariskcom-ddc.moph.go.th</a> ทันที</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-white" onclick="openImportModal()">📥 นำเข้าข้อมูลจาก Tableau (CSV / วางตาราง)</button>
+      <button class="btn btn-outline-white" onclick="exportStandaloneHTML()">💾 บันทึกไฟล์ HTML พร้อมข้อมูล</button>
+      <a class="btn btn-outline-white" href="https://dvis3.ddc.moph.go.th/t/DDC_CENTER_DOE/views/_Daily_17491057082280/sheet16?%3Aembed=y&%3AisGuestRedirectFromVizportal=y&%3Aorigin=card_share_link" target="_blank" rel="noopener">🔗 เปิดหน้า Tableau ต้นฉบับ (sheet16)</a>
+    </div>
+  </header>
+
+  <div class="notice-bar" id="data-status-banner">
+    <div>
+      <strong>สถานะชุดข้อมูล (<span id="status-mode-label">โหมดโครงสร้างตัวอย่าง — รอนำเข้าข้อมูลจริงจาก Tableau</span>):</strong>
+      เนื่องจากเซิร์ฟเวอร์ <a href="https://dvis3.ddc.moph.go.th/t/DDC_CENTER_DOE/views/_Daily_17491057082280/sheet16?%3Aembed=y&%3AisGuestRedirectFromVizportal=y&%3Aorigin=card_share_link" target="_blank" rel="noopener">dvis3.ddc.moph.go.th (sheet16)</a> จำกัดการดึงข้อมูลอัตโนมัติจากภายนอก แผนที่นี้จึงตั้งค่าเริ่มต้นด้วย 5 โรคเฝ้าระวังหลักของ <a href="https://ddsdoe.ddc.moph.go.th/" target="_blank" rel="noopener">ระบบ DDS กองระบาดวิทยา</a> เพื่อให้ทดสอบชี้เมาส์และคลิกค้นหาสื่อบน <a href="https://datariskcom-ddc.moph.go.th/" target="_blank" rel="noopener">datariskcom-ddc.moph.go.th</a> ได้ครบทั้ง 77 จังหวัด และคุณสามารถกดปุ่ม <strong>"นำเข้าข้อมูลจาก Tableau"</strong> ด้านบนเพื่ออัปเดตตัวเลขจริงได้ทันที
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <label for="search-province" style="font-size:0.85rem;font-weight:600;">ค้นหาจังหวัด:</label>
+        <input type="text" id="search-province" class="input-control" placeholder="พิมพ์ชื่อจังหวัด เช่น นนทบุรี, เชียงใหม่..." oninput="applyFilters()" />
+
+        <label for="filter-region" style="font-size:0.85rem;font-weight:600;">ภูมิภาค / เขตสุขภาพ:</label>
+        <select id="filter-region" class="select-control" onchange="applyFilters()">
+          <option value="ALL">ทุกภูมิภาค (77 จังหวัด)</option>
+          <option value="ภาคเหนือ">ภาคเหนือ</option>
+          <option value="ภาคตะวันออกเฉียงเหนือ">ภาคตะวันออกเฉียงเหนือ (อีสาน)</option>
+          <option value="ภาคกลาง">ภาคกลาง & กรุงเทพฯ</option>
+          <option value="ภาคตะวันออก">ภาคตะวันออก</option>
+          <option value="ภาคตะวันตก">ภาคตะวันตก</option>
+          <option value="ภาคใต้">ภาคใต้</option>
+          <optgroup label="แยกตามเขตสุขภาพ (สคร. 1–13)">
+            <option value="HR-1">เขตสุขภาพที่ 1 (เชียงใหม่)</option>
+            <option value="HR-2">เขตสุขภาพที่ 2 (พิษณุโลก)</option>
+            <option value="HR-3">เขตสุขภาพที่ 3 (นครสวรรค์)</option>
+            <option value="HR-4">เขตสุขภาพที่ 4 (สระบุรี/นนทบุรี)</option>
+            <option value="HR-5">เขตสุขภาพที่ 5 (ราชบุรี)</option>
+            <option value="HR-6">เขตสุขภาพที่ 6 (ชลบุรี)</option>
+            <option value="HR-7">เขตสุขภาพที่ 7 (ขอนแก่น)</option>
+            <option value="HR-8">เขตสุขภาพที่ 8 (อุดรธานี)</option>
+            <option value="HR-9">เขตสุขภาพที่ 9 (นครราชสีมา)</option>
+            <option value="HR-10">เขตสุขภาพที่ 10 (อุบลราชธานี)</option>
+            <option value="HR-11">เขตสุขภาพที่ 11 (นครศรีธรรมราช)</option>
+            <option value="HR-12">เขตสุขภาพที่ 12 (สงขลา)</option>
+            <option value="HR-13">เขตสุขภาพที่ 13 (กรุงเทพมหานคร)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="search-url-mode" style="font-size:0.85rem;font-weight:600;">รูปแบบลิงก์ค้นหาสื่อเมื่อคลิกโรค:</label>
+        <select id="search-url-mode" class="select-control" onchange="refreshActiveViews()">
+          <option value="datariskcom_wpdm" selected>1. แบบค้นหาสื่อล่าสุด (https://datariskcom-ddc.moph.go.th/?wpdm_search=ชื่อโรค)</option>
+          <option value="google_site">2. แบบค้นหาผ่าน Google (site:datariskcom-ddc.moph.go.th)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="workspace-grid">
+      <div class="map-card">
+        <div class="map-card-header">
+          <h2>🗺️ แผนที่ประเทศไทย รายจังหวัด (77 จังหวัด)</h2>
+          <span style="font-size:0.8rem;color:var(--text-muted);">เลื่อนเมาส์ชี้ที่จังหวัดเพื่อดู 5 อันดับโรค • คลิกที่จังหวัดเพื่อตรึงหน้าต่าง (Pin) • คลิกชื่อโรคเพื่อค้นหาสื่อ</span>
+        </div>
+
+        <div class="map-viewport" id="map-viewport">
+          <div class="map-controls">
+            <button class="map-ctrl-btn" onclick="zoomMap(1.35)">➕ ซูมเข้า (Zoom In)</button>
+            <button class="map-ctrl-btn" onclick="zoomMap(0.75)">➖ ซูมออก (Zoom Out)</button>
+            <button class="map-ctrl-btn" onclick="focusBKK()">🔍 ขยายกรุงเทพฯ และปริมณฑล</button>
+            <button class="map-ctrl-btn" onclick="resetMapZoom()">🔄 รีเซ็ตมุมมองทั้งประเทศ</button>
+          </div>
+
+          <div class="map-legend">
+            <h4>สัญลักษณ์ภูมิภาค (77 จังหวัด)</h4>
+            <div class="legend-item"><span class="legend-swatch" style="background:#38bdf8;"></span> ภาคเหนือ (9 จังหวัด)</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#fbbf24;"></span> ภาคตะวันออกเฉียงเหนือ (20 จังหวัด)</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#34d399;"></span> ภาคกลาง & กทม. (22 จังหวัด)</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#a78bfa;"></span> ภาคตะวันออก (7 จังหวัด)</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#fb923c;"></span> ภาคตะวันตก (5 จังหวัด)</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#f472b6;"></span> ภาคใต้ (14 จังหวัด)</div>
+          </div>
+
+          <div class="hover-tooltip" id="hover-tooltip" onmouseenter="cancelHideTooltip()" onmouseleave="scheduleHideTooltip()">
+            <div class="tooltip-header">
+              <div>
+                <div class="tooltip-prov-name" id="tt-prov-name">กรุงเทพมหานคร</div>
+                <div class="tooltip-prov-meta" id="tt-prov-meta">ภาคกลาง • เขตสุขภาพที่ 13</div>
+              </div>
+              <button class="tooltip-pin-badge" id="tt-pin-btn" onclick="togglePinCurrentProvince()">📌 คลิกจังหวัดเพื่อตรึง</button>
+            </div>
+            <div class="tooltip-subtitle">5 อันดับโรคที่พบมาก (คลิกชื่อโรคเพื่อค้นหาสื่อทันที):</div>
+            <div class="disease-list" id="tt-disease-list"></div>
+          </div>
+
+          <svg id="thailand-svg" viewBox="0 0 560 960" xmlns="http://www.w3.org/2000/svg">
+            <g id="map-zoom-group">
+              <path d="M 97.2 799.5 L 97.1 800.5 L 96.9 801.4 L 96.5 802.3 L 96.1 803.2 L 95.6 804.0 L 95.0 804.8 L 94.4 805.5 L 93.7 806.2 L 92.9 806.7 L 92.1 807.2 L 91.2 807.7 L 90.3 808.0 L 89.3 808.2 L 88.4 808.4 L 87.4 808.4 L 86.4 808.4 L 85.5 808.2 L 84.5 808.0 L 83.6 807.7 L 82.8 807.2 L 81.9 806.7 L 81.2 806.2 L 80.4 805.5 L 79.8 804.8 L 79.2 804.0 L 78.7 803.2 L 78.3 802.3 L 78.0 801.4 L 77.7 800.5 L 77.6 799.5 L 77.5 798.5 L 77.6 797.6 L 77.7 796.6 L 78.0 795.7 L 78.3 794.8 L 78.7 793.9 L 79.2 793.1 L 79.8 792.3 L 80.0 792.1 L 72.7 770.8 L 72.7 770.6 L 72.6 770.4 L 72.6 770.2 L 72.6 770.0 L 72.6 769.9 L 79.4 731.4 L 79.4 731.1 L 97.6 672.0 L 97.7 671.7 L 127.6 608.4 L 127.6 608.2 L 161.0 551.5 L 137.3 496.1 L 137.2 495.9 L 137.2 495.8 L 137.2 495.6 L 137.1 495.3 L 138.1 466.9 L 131.2 433.2 L 90.4 384.5 L 90.3 384.4 L 90.2 384.3 L 90.1 384.1 L 75.4 353.2 L 75.3 353.0 L 75.3 352.8 L 75.2 352.7 L 75.2 352.5 L 75.2 352.3 L 75.2 352.1 L 75.3 352.0 L 75.3 351.8 L 75.4 351.6 L 75.4 351.5 L 75.5 351.3 L 75.6 351.2 L 75.8 351.1 L 75.9 350.9 L 76.0 350.8 L 76.2 350.8 L 96.9 339.7 L 118.8 287.5 L 94.2 247.8 L 55.1 202.8 L 55.0 202.7 L 54.9 202.5 L 25.1 148.4 L 25.0 148.2 L 25.0 148.1 L 24.9 147.9 L 24.9 147.7 L 24.9 147.5 L 24.9 147.3 L 24.9 147.2 L 24.9 147.0 L 25.0 146.8 L 25.1 146.7 L 25.2 146.5 L 25.3 146.4 L 25.4 146.2 L 25.5 146.1 L 25.7 146.0 L 25.8 145.9 L 26.0 145.8 L 51.3 134.9 L 79.2 68.9 L 79.2 68.7 L 79.3 68.6 L 79.4 68.4 L 79.6 68.3 L 79.7 68.2 L 79.9 68.1 L 80.0 68.0 L 80.2 67.9 L 80.4 67.8 L 80.6 67.8 L 80.7 67.8 L 123.7 65.0 L 159.3 38.6 L 159.4 38.5 L 159.6 38.5 L 159.7 38.4 L 195.0 24.1 L 195.2 24.1 L 195.4 24.0 L 195.6 24.0 L 195.8 24.0 L 195.9 24.0 L 196.1 24.0 L 196.3 24.1 L 196.5 24.2 L 196.6 24.2 L 196.8 24.3 L 223.5 43.4 L 223.6 43.5 L 223.8 43.6 L 223.9 43.7 L 224.0 43.9 L 224.1 44.0 L 224.1 44.2 L 224.2 44.4 L 224.2 44.5 L 224.3 44.7 L 227.7 80.2 L 267.8 82.9 L 267.9 82.9 L 268.1 83.0 L 268.3 83.0 L 268.4 83.1 L 268.6 83.2 L 268.8 83.3 L 268.9 83.4 L 269.0 83.5 L 269.1 83.7 L 269.2 83.8 L 269.3 84.0 L 269.4 84.1 L 269.4 84.3 L 269.5 84.5 L 269.5 84.7 L 269.5 84.8 L 269.5 85.0 L 269.4 85.2 L 254.3 149.9 L 255.7 201.9 L 318.0 166.6 L 318.2 166.6 L 318.3 166.5 L 318.5 166.4 L 318.7 166.4 L 318.9 166.4 L 319.0 166.4 L 319.2 166.4 L 319.4 166.5 L 319.5 166.5 L 319.7 166.6 L 319.9 166.7 L 337.9 177.2 L 372.4 175.5 L 384.3 155.0 L 384.4 154.8 L 384.5 154.7 L 384.7 154.5 L 384.8 154.4 L 384.9 154.3 L 385.1 154.2 L 385.3 154.2 L 385.4 154.1 L 385.6 154.1 L 385.8 154.0 L 385.9 154.0 L 386.1 154.0 L 432.8 158.3 L 433.0 158.3 L 433.1 158.3 L 433.3 158.4 L 433.5 158.5 L 433.7 158.6 L 433.8 158.7 L 433.9 158.9 L 480.8 208.9 L 481.0 209.1 L 481.1 209.2 L 481.2 209.4 L 481.2 209.6 L 481.3 209.7 L 481.3 209.9 L 481.3 210.1 L 485.1 270.3 L 534.6 323.6 L 534.8 323.7 L 534.9 323.9 L 535.0 324.0 L 535.0 324.2 L 535.1 324.4 L 535.1 324.6 L 535.1 324.7 L 535.1 324.9 L 532.4 377.1 L 532.4 377.3 L 532.3 377.5 L 532.3 377.7 L 532.2 377.8 L 532.1 378.0 L 532.0 378.1 L 511.9 405.9 L 511.8 406.1 L 511.7 406.2 L 511.6 406.3 L 511.4 406.4 L 511.2 406.5 L 511.1 406.6 L 510.9 406.6 L 510.7 406.7 L 510.5 406.7 L 510.4 406.7 L 510.2 406.7 L 452.6 397.9 L 373.9 409.5 L 335.4 459.5 L 349.8 533.2 L 349.8 533.4 L 349.8 533.5 L 349.8 533.7 L 349.8 533.9 L 349.8 534.1 L 349.7 534.2 L 349.6 534.4 L 349.5 534.6 L 349.4 534.7 L 349.3 534.8 L 349.2 535.0 L 349.0 535.1 L 348.9 535.2 L 348.7 535.2 L 348.6 535.3 L 348.4 535.3 L 348.2 535.4 L 348.0 535.4 L 347.8 535.4 L 347.7 535.4 L 347.5 535.3 L 347.3 535.3 L 347.2 535.2 L 292.2 507.1 L 239.9 508.2 L 239.7 508.2 L 239.5 508.2 L 239.4 508.2 L 239.2 508.1 L 239.0 508.0 L 238.9 507.9 L 238.7 507.8 L 238.6 507.7 L 238.5 507.6 L 238.3 507.4 L 238.3 507.3 L 238.2 507.1 L 238.1 506.9 L 238.1 506.8 L 238.0 506.6 L 238.0 506.4 L 238.0 506.2 L 238.1 506.0 L 246.7 459.8 L 196.3 460.1 L 191.6 526.2 L 191.5 526.4 L 191.5 526.6 L 191.5 526.8 L 158.2 616.8 L 138.3 670.9 L 142.3 713.6 L 180.9 715.4 L 181.1 715.4 L 181.2 715.5 L 181.4 715.5 L 181.6 715.6 L 181.8 715.7 L 181.9 715.8 L 182.0 715.9 L 182.2 716.0 L 182.3 716.2 L 182.4 716.3 L 182.5 716.5 L 207.5 772.8 L 207.6 773.0 L 207.6 773.2 L 218.6 826.0 L 252.2 860.6 L 289.0 867.6 L 289.2 867.7 L 289.4 867.7 L 289.5 867.8 L 289.7 867.9 L 289.8 868.0 L 290.0 868.1 L 321.9 900.1 L 322.1 900.3 L 322.2 900.4 L 322.3 900.6 L 322.3 900.7 L 322.4 900.9 L 322.4 901.1 L 322.5 901.3 L 322.5 901.4 L 322.5 901.6 L 322.4 901.8 L 322.4 902.0 L 322.3 902.1 L 322.3 902.3 L 322.2 902.5 L 322.1 902.6 L 301.9 927.9 L 301.8 928.1 L 301.6 928.2 L 301.5 928.3 L 301.3 928.4 L 301.2 928.5 L 301.0 928.6 L 300.8 928.6 L 260.1 936.0 L 259.9 936.0 L 259.7 936.0 L 259.5 936.0 L 259.4 936.0 L 259.2 935.9 L 259.0 935.8 L 258.8 935.8 L 258.7 935.7 L 258.5 935.5 L 258.4 935.4 L 258.3 935.3 L 258.2 935.1 L 258.1 935.0 L 258.0 934.8 L 258.0 934.6 L 257.9 934.4 L 253.2 903.7 L 204.9 877.8 L 195.2 887.8 L 195.0 887.9 L 194.9 888.0 L 194.7 888.1 L 194.6 888.2 L 194.4 888.2 L 194.2 888.3 L 194.1 888.3 L 193.9 888.3 L 193.7 888.3 L 193.5 888.3 L 193.3 888.2 L 193.2 888.2 L 193.0 888.1 L 192.8 888.0 L 192.7 887.9 L 192.6 887.8 L 168.2 864.1 L 168.1 864.0 L 168.0 863.9 L 167.9 863.7 L 167.8 863.6 L 167.7 863.4 L 157.3 833.2 L 124.8 798.7 L 97.2 771.7 L 92.1 789.9 L 92.9 790.3 L 93.7 790.9 L 94.4 791.6 L 95.0 792.3 L 95.6 793.1 L 96.1 793.9 L 96.5 794.8 L 96.9 795.7 L 97.1 796.6 L 97.2 797.6 L 97.3 798.5 L 97.2 799.5 Z" fill="#cbd5e1" stroke="#64748b" stroke-width="2" />
+              <g id="provinces-layer"></g>
+              <g id="labels-layer"></g>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="side-panel">
+        <div class="panel-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div>
+              <h3 id="side-prov-title">จังหวัดนนทบุรี (Nonthaburi)</h3>
+              <div class="sub" id="side-prov-sub" style="margin-bottom:6px;">ภาคกลาง • เขตสุขภาพที่ 4 • รหัสจังหวัด TH-12</div>
+            </div>
+            <button class="btn btn-secondary" style="padding:5px 10px;font-size:0.78rem;" onclick="openEditProvinceModal()">✏️ แก้ไขข้อมูลจังหวัดนี้</button>
+          </div>
+          <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;">
+            คลิกที่โรคอันดับ 1–5 ด้านล่าง (หรือในกรอบบอลลูนบนแผนที่) เพื่อเปิดหน้าค้นหาสื่อประชาสัมพันธ์และอินโฟกราฟิกบน <strong>datariskcom-ddc.moph.go.th</strong> ทันที:
+          </p>
+          <div id="side-disease-cards"></div>
+        </div>
+
+        <div class="panel-card">
+          <h3>📌 คำแนะนำการเชื่อมโยงข้อมูลจริงจาก Tableau (sheet16)</h3>
+          <div class="sub">วิธีนำข้อมูลตารางจากแดชบอร์ดกรมควบคุมโรคมาแสดงผลในแผนที่นี้</div>
+          <ol style="font-size:0.83rem;color:var(--text-main);padding-left:18px;display:flex;flex-direction:column;gap:6px;">
+            <li>เปิดลิงก์ <a href="https://dvis3.ddc.moph.go.th/t/DDC_CENTER_DOE/views/_Daily_17491057082280/sheet16?%3Aembed=y&%3AisGuestRedirectFromVizportal=y&%3Aorigin=card_share_link" target="_blank" rel="noopener" style="color:#0f766e;font-weight:600;">Tableau กองระบาดวิทยา (sheet16)</a> บนเบราว์เซอร์ของคุณ</li>
+            <li>กดปุ่ม <strong>Download (ดาวน์โหลด)</strong> มุมขวาบนของตาราง เลือก <strong>Crosstab (CSV / Excel)</strong> หรือกดคัดลอกตาราง</li>
+            <li>คลิกปุ่ม <strong>"📥 นำเข้าข้อมูลจาก Tableau"</strong> ด้านบนสุดของหน้านี้ แล้วเลือกไฟล์ CSV หรือวางข้อมูลตาราง</li>
+            <li>กดปุ่ม <strong>"💾 บันทึกไฟล์ HTML พร้อมข้อมูล"</strong> เพื่อดาวน์โหลดไฟล์ HTML ฉบับสมบูรณ์ที่มีข้อมูลจริงฝังอยู่ในตัวไฟล์</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <h3 style="font-size:1.05rem;font-weight:700;">📊 ตารางสรุปข้อมูล 5 อันดับโรค รายจังหวัด (ครบทั้ง 77 จังหวัด)</h3>
+          <p style="font-size:0.82rem;color:var(--text-muted);">คลิกที่แถวจังหวัดเพื่อดูบนแผนที่ หรือคลิกที่ป้ายชื่อโรค 1–5 เพื่อค้นหาสื่อความเสี่ยงบน DataRiskCom ทันที</p>
+        </div>
+        <span id="table-count-badge" style="font-size:0.82rem;font-weight:600;color:#0f766e;background:#ccfbf1;padding:4px 10px;border-radius:999px;">แสดง 77 จังหวัด</span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัส</th>
+              <th>จังหวัด</th>
+              <th>ภูมิภาค (เขตสุขภาพ)</th>
+              <th>อันดับ 1</th>
+              <th>อันดับ 2</th>
+              <th>อันดับ 3</th>
+              <th>อันดับ 4</th>
+              <th>อันดับ 5</th>
+            </tr>
+          </thead>
+          <tbody id="province-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="import-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="font-size:1.1rem;font-weight:700;">📥 นำเข้าข้อมูล 5 อันดับโรครายจังหวัดจาก Tableau (sheet16)</h3>
+        <button class="btn btn-secondary" onclick="closeImportModal()">✕ ปิด</button>
+      </div>
+      <p style="font-size:0.84rem;color:var(--text-muted);margin-bottom:10px;">
+        รองรับทั้งไฟล์ CSV/TSV ที่ส่งออกจาก Tableau (Crosstab) หรือวางข้อความตารางโดยตรงใน 2 รูปแบบ:
+      </p>
+      <ul style="font-size:0.8rem;color:var(--text-muted);padding-left:18px;margin-bottom:12px;">
+        <li><strong>รูปแบบที่ 1 (แนวกว้าง 1 แถวต่อจังหวัด):</strong> <code>จังหวัด, โรคอันดับ1, โรคอันดับ2, โรคอันดับ3, โรคอันดับ4, โรคอันดับ5</code></li>
+        <li><strong>รูปแบบที่ 2 (แนวตั้ง แยกแถวตามอันดับ):</strong> <code>จังหวัด, อันดับ(1-5), ชื่อโรค, จำนวนผู้ป่วย/อัตราป่วย(ถ้ามี)</code></li>
+      </ul>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.84rem;font-weight:600;display:block;margin-bottom:4px;">เลือกไฟล์ CSV / TSV / JSON:</label>
+        <input type="file" id="csv-file-input" accept=".csv,.tsv,.txt,.json" class="input-control" onchange="handleFileUpload(event)" />
+      </div>
+      <div>
+        <label style="font-size:0.84rem;font-weight:600;display:block;">หรือวางข้อมูลตาราง (Copy & Paste จาก Excel / Tableau):</label>
+        <textarea id="paste-data-input" class="paste-area" placeholder="ตัวอย่าง:&#10;กรุงเทพมหานคร, ไข้หวัดใหญ่ (1,240 ราย), ไข้เลือดออก (850 ราย), มือ เท้า ปาก (420 ราย), อีสุกอีใส (190 ราย), ไข้ฉี่หนู (45 ราย)&#10;นนทบุรี, ไข้หวัดใหญ่, ไข้เลือดออก, มือ เท้า ปาก, ปอดอักเสบ, อีสุกอีใส"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeImportModal()">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="applyPastedData()">✅ นำเข้าและอัปเดตแผนที่ทันที</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="edit-prov-modal">
+    <div class="modal-box" style="max-width:540px;">
+      <div class="modal-header">
+        <h3 style="font-size:1.05rem;font-weight:700;" id="edit-modal-title">✏️ แก้ไข 5 อันดับโรค</h3>
+        <button class="btn btn-secondary" onclick="closeEditProvinceModal()">✕ ปิด</button>
+      </div>
+      <div id="edit-prov-form" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeEditProvinceModal()">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="saveEditedProvince()">💾 บันทึกการแก้ไข</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PROVINCES_DATA = [{"code": "TH-10", "name_th": "กรุงเทพมหานคร", "name_en": "Bangkok", "region": "ภาคกลาง", "health_region": 13, "lat": 13.7563, "lon": 100.5018, "cx": 217.0, "cy": 441.0, "px": 219.5, "py": 436.7, "path": "M 205.8 435.9 L 206.4 431.8 L 233.0 435.0 L 215.2 446.1 L 205.8 435.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-11", "name_th": "สมุทรปราการ", "name_en": "Samut Prakan", "region": "ภาคกลาง", "health_region": 6, "lat": 13.5991, "lon": 100.5998, "cx": 228.2, "cy": 447.0, "px": 225.6, "py": 446.4, "path": "M 215.2 446.1 L 233.0 435.0 L 238.3 433.3 L 241.1 447.8 L 233.7 459.9 L 217.4 460.0 L 215.2 446.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-12", "name_th": "นนทบุรี", "name_en": "Nonthaburi", "region": "ภาคกลาง", "health_region": 4, "lat": 13.8621, "lon": 100.5144, "cx": 222.9, "cy": 429.2, "px": 220.3, "py": 430.2, "path": "M 205.7 424.3 L 240.4 426.6 L 238.3 433.3 L 233.0 435.0 L 206.4 431.8 L 205.7 424.3 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-13", "name_th": "ปทุมธานี", "name_en": "Pathum Thani", "region": "ภาคกลาง", "health_region": 4, "lat": 14.0208, "lon": 100.525, "cx": 222.7, "cy": 417.0, "px": 220.9, "py": 420.4, "path": "M 200.8 413.2 L 206.5 408.1 L 241.6 412.7 L 243.8 420.8 L 240.4 426.6 L 205.7 424.3 L 200.8 413.2 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-14", "name_th": "พระนครศรีอยุธยา", "name_en": "Phra Nakhon Si Ayutthaya", "region": "ภาคกลาง", "health_region": 4, "lat": 14.3532, "lon": 100.5684, "cx": 223.2, "cy": 403.0, "px": 223.6, "py": 399.9, "path": "M 209.3 397.8 L 230.6 387.6 L 242.2 410.1 L 241.6 412.7 L 206.5 408.1 L 209.3 397.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-15", "name_th": "อ่างทอง", "name_en": "Ang Thong", "region": "ภาคกลาง", "health_region": 4, "lat": 14.5896, "lon": 100.455, "cx": 218.1, "cy": 387.0, "px": 216.6, "py": 385.3, "path": "M 230.8 386.4 L 230.6 387.6 L 209.3 397.8 L 202.6 378.3 L 218.9 375.2 L 230.8 386.4 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-16", "name_th": "ลพบุรี", "name_en": "Lopburi", "region": "ภาคกลาง", "health_region": 4, "lat": 14.7995, "lon": 100.6534, "cx": 240.3, "cy": 361.7, "px": 228.9, "py": 372.4, "path": "M 261.4 327.7 L 270.0 339.4 L 271.1 348.2 L 230.8 386.4 L 218.9 375.2 L 234.7 332.1 L 249.1 323.9 L 261.4 327.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-17", "name_th": "สิงห์บุรี", "name_en": "Sing Buri", "region": "ภาคกลาง", "health_region": 4, "lat": 14.8936, "lon": 100.3967, "cx": 219.1, "cy": 351.9, "px": 213.0, "py": 366.6, "path": "M 190.8 370.5 L 230.7 333.4 L 234.7 332.1 L 218.9 375.2 L 202.6 378.3 L 190.8 370.5 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-18", "name_th": "ชัยนาท", "name_en": "Chai Nat", "region": "ภาคกลาง", "health_region": 3, "lat": 15.1852, "lon": 100.1251, "cx": 195.6, "cy": 351.8, "px": 196.3, "py": 348.6, "path": "M 191.6 332.5 L 230.7 333.4 L 190.8 370.5 L 169.6 370.2 L 191.6 332.5 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-19", "name_th": "สระบุรี", "name_en": "Saraburi", "region": "ภาคกลาง", "health_region": 4, "lat": 14.5289, "lon": 100.9101, "cx": 255.8, "cy": 380.1, "px": 244.7, "py": 389.1, "path": "M 230.6 387.6 L 230.8 386.4 L 271.1 348.2 L 280.8 373.8 L 242.2 410.1 L 230.6 387.6 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-26", "name_th": "นครนายก", "name_en": "Nakhon Nayok", "region": "ภาคกลาง", "health_region": 4, "lat": 14.2069, "lon": 101.2131, "cx": 268.2, "cy": 399.1, "px": 263.4, "py": 408.9, "path": "M 242.2 410.1 L 280.8 373.8 L 293.3 388.1 L 257.8 424.5 L 243.8 420.8 L 241.6 412.7 L 242.2 410.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-60", "name_th": "นครสวรรค์", "name_en": "Nakhon Sawan", "region": "ภาคกลาง", "health_region": 3, "lat": 15.7047, "lon": 100.1372, "cx": 208.0, "cy": 313.4, "px": 197.0, "py": 316.5, "path": "M 164.8 303.0 L 183.7 288.1 L 234.2 302.6 L 249.1 323.9 L 234.7 332.1 L 230.7 333.4 L 191.6 332.5 L 164.8 303.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-61", "name_th": "อุทัยธานี", "name_en": "Uthai Thani", "region": "ภาคกลาง", "health_region": 3, "lat": 15.3835, "lon": 99.7847, "cx": 144.0, "cy": 336.1, "px": 175.3, "py": 336.4, "path": "M 164.8 303.0 L 191.6 332.5 L 169.6 370.2 L 154.2 375.9 L 79.6 362.0 L 75.4 353.2 L 75.3 353.0 L 75.3 352.8 L 75.2 352.7 L 75.2 352.5 L 75.2 352.3 L 75.2 352.1 L 75.3 352.0 L 75.3 351.8 L 75.4 351.6 L 75.4 351.5 L 75.5 351.3 L 75.6 351.2 L 75.8 351.1 L 75.9 350.9 L 76.0 350.8 L 76.2 350.8 L 96.9 339.7 L 106.5 316.9 L 164.8 303.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-62", "name_th": "กำแพงเพชร", "name_en": "Kamphaeng Phet", "region": "ภาคกลาง", "health_region": 3, "lat": 16.4828, "lon": 99.5227, "cx": 156.2, "cy": 274.8, "px": 159.1, "py": 268.6, "path": "M 157.3 245.9 L 183.4 261.1 L 184.9 264.3 L 183.7 288.1 L 164.8 303.0 L 106.5 316.9 L 118.8 287.5 L 117.5 285.3 L 157.3 245.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-64", "name_th": "สุโขทัย", "name_en": "Sukhothai", "region": "ภาคกลาง", "health_region": 2, "lat": 17.0056, "lon": 99.8264, "cx": 174.9, "cy": 234.5, "px": 177.9, "py": 236.3, "path": "M 157.3 245.9 L 149.5 201.4 L 150.1 201.3 L 199.3 223.2 L 183.4 261.1 L 157.3 245.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-65", "name_th": "พิษณุโลก", "name_en": "Phitsanulok", "region": "ภาคกลาง", "health_region": 2, "lat": 16.8211, "lon": 100.2659, "cx": 217.4, "cy": 238.8, "px": 205.0, "py": 247.7, "path": "M 243.8 213.9 L 248.6 224.4 L 235.6 253.2 L 184.9 264.3 L 183.4 261.1 L 199.3 223.2 L 243.8 213.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-66", "name_th": "พิจิตร", "name_en": "Phichit", "region": "ภาคกลาง", "health_region": 3, "lat": 16.4429, "lon": 100.3488, "cx": 209.6, "cy": 276.2, "px": 210.1, "py": 271.0, "path": "M 183.7 288.1 L 184.9 264.3 L 235.6 253.2 L 234.2 302.6 L 183.7 288.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-67", "name_th": "เพชรบูรณ์", "name_en": "Phetchabun", "region": "ภาคกลาง", "health_region": 2, "lat": 16.419, "lon": 101.1591, "cx": 264.1, "cy": 282.1, "px": 260.1, "py": 272.5, "path": "M 249.1 323.9 L 234.2 302.6 L 235.6 253.2 L 248.6 224.4 L 302.3 252.7 L 307.9 261.6 L 261.4 327.7 L 249.1 323.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-72", "name_th": "สุพรรณบุรี", "name_en": "Suphan Buri", "region": "ภาคกลาง", "health_region": 5, "lat": 14.4745, "lon": 100.1177, "cx": 184.8, "cy": 388.1, "px": 195.8, "py": 392.4, "path": "M 154.2 375.9 L 169.6 370.2 L 190.8 370.5 L 202.6 378.3 L 209.3 397.8 L 206.5 408.1 L 200.8 413.2 L 181.8 411.6 L 154.2 375.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-73", "name_th": "นครปฐม", "name_en": "Nakhon Pathom", "region": "ภาคกลาง", "health_region": 5, "lat": 13.8199, "lon": 100.0622, "cx": 190.8, "cy": 428.1, "px": 192.4, "py": 432.8, "path": "M 173.8 432.5 L 181.8 411.6 L 200.8 413.2 L 205.7 424.3 L 206.4 431.8 L 205.8 435.9 L 193.0 445.8 L 188.7 445.2 L 173.8 432.5 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-74", "name_th": "สมุทรสาคร", "name_en": "Samut Sakhon", "region": "ภาคกลาง", "health_region": 5, "lat": 13.5475, "lon": 100.2744, "cx": 206.5, "cy": 453.1, "px": 205.5, "py": 449.6, "path": "M 193.0 445.8 L 205.8 435.9 L 215.2 446.1 L 217.4 460.0 L 200.3 460.1 L 193.0 445.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-75", "name_th": "สมุทรสงคราม", "name_en": "Samut Songkhram", "region": "ภาคกลาง", "health_region": 5, "lat": 13.4098, "lon": 100.0023, "cx": 190.2, "cy": 452.9, "px": 188.7, "py": 458.1, "path": "M 188.7 445.2 L 193.0 445.8 L 200.3 460.1 L 196.3 460.1 L 195.7 469.1 L 176.2 465.1 L 188.7 445.2 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-20", "name_th": "ชลบุรี", "name_en": "Chon Buri", "region": "ภาคตะวันออก", "health_region": 6, "lat": 13.3611, "lon": 100.9847, "cx": 254.7, "cy": 478.6, "px": 249.3, "py": 461.1, "path": "M 241.1 447.8 L 288.8 461.3 L 291.5 467.6 L 241.1 489.6 L 246.7 459.8 L 233.7 459.9 L 241.1 447.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-21", "name_th": "ระยอง", "name_en": "Rayong", "region": "ภาคตะวันออก", "health_region": 6, "lat": 12.6814, "lon": 101.2816, "cx": 279.0, "cy": 480.1, "px": 267.6, "py": 503.0, "path": "M 291.5 467.6 L 295.9 470.6 L 292.8 507.4 L 292.2 507.1 L 239.9 508.2 L 239.7 508.2 L 239.5 508.2 L 239.4 508.2 L 239.2 508.1 L 239.0 508.0 L 238.9 507.9 L 238.7 507.8 L 238.6 507.7 L 238.5 507.6 L 238.3 507.4 L 238.3 507.3 L 238.2 507.1 L 238.1 506.9 L 238.1 506.8 L 238.0 506.6 L 238.0 506.4 L 238.0 506.2 L 238.1 506.0 L 241.1 489.6 L 291.5 467.6 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-22", "name_th": "จันทบุรี", "name_en": "Chanthaburi", "region": "ภาคตะวันออก", "health_region": 6, "lat": 12.6114, "lon": 102.1039, "cx": 317.7, "cy": 487.4, "px": 318.3, "py": 507.3, "path": "M 295.9 470.6 L 337.3 469.3 L 344.1 504.1 L 326.0 524.4 L 292.8 507.4 L 295.9 470.6 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-23", "name_th": "ตราด", "name_en": "Trat", "region": "ภาคตะวันออก", "health_region": 6, "lat": 12.2428, "lon": 102.5175, "cx": 340.6, "cy": 514.2, "px": 343.8, "py": 530.1, "path": "M 344.1 504.1 L 349.8 533.2 L 349.8 533.4 L 349.8 533.5 L 349.8 533.7 L 349.8 533.9 L 349.8 534.1 L 349.7 534.2 L 349.6 534.4 L 349.5 534.6 L 349.4 534.7 L 349.3 534.8 L 349.2 535.0 L 349.0 535.1 L 348.9 535.2 L 348.7 535.2 L 348.6 535.3 L 348.4 535.3 L 348.2 535.4 L 348.0 535.4 L 347.8 535.4 L 347.7 535.4 L 347.5 535.3 L 347.3 535.3 L 347.2 535.2 L 326.0 524.4 L 344.1 504.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-24", "name_th": "ฉะเชิงเทรา", "name_en": "Chachoengsao", "region": "ภาคตะวันออก", "health_region": 6, "lat": 13.6904, "lon": 101.078, "cx": 258.6, "cy": 440.6, "px": 255.1, "py": 440.8, "path": "M 238.3 433.3 L 240.4 426.6 L 243.8 420.8 L 257.8 424.5 L 287.1 448.4 L 288.8 461.3 L 241.1 447.8 L 238.3 433.3 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-25", "name_th": "ปราจีนบุรี", "name_en": "Prachin Buri", "region": "ภาคตะวันออก", "health_region": 6, "lat": 14.0509, "lon": 101.3728, "cx": 285.5, "cy": 410.5, "px": 273.2, "py": 418.6, "path": "M 293.3 388.1 L 304.1 396.5 L 287.1 448.4 L 257.8 424.5 L 293.3 388.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-27", "name_th": "สระแก้ว", "name_en": "Sa Kaeo", "region": "ภาคตะวันออก", "health_region": 6, "lat": 13.824, "lon": 102.0646, "cx": 324.5, "cy": 431.9, "px": 315.9, "py": 432.5, "path": "M 288.8 461.3 L 287.1 448.4 L 304.1 396.5 L 349.4 397.8 L 369.3 415.5 L 335.4 459.5 L 337.3 469.3 L 295.9 470.6 L 291.5 467.6 L 288.8 461.3 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-30", "name_th": "นครราชสีมา", "name_en": "Nakhon Ratchasima", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 9, "lat": 14.9799, "lon": 102.0978, "cx": 312.4, "cy": 361.0, "px": 318.0, "py": 361.3, "path": "M 270.0 339.4 L 348.6 333.1 L 349.4 397.8 L 304.1 396.5 L 293.3 388.1 L 280.8 373.8 L 271.1 348.2 L 270.0 339.4 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-31", "name_th": "บุรีรัมย์", "name_en": "Buri Ram", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 9, "lat": 14.993, "lon": 103.1029, "cx": 370.3, "cy": 365.5, "px": 379.9, "py": 360.4, "path": "M 348.6 333.1 L 359.2 319.2 L 390.5 324.4 L 401.5 330.1 L 379.4 408.7 L 373.9 409.5 L 369.3 415.5 L 349.4 397.8 L 348.6 333.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-32", "name_th": "สุรินทร์", "name_en": "Surin", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 9, "lat": 14.8829, "lon": 103.4937, "cx": 411.4, "cy": 369.2, "px": 404.0, "py": 367.2, "path": "M 401.5 330.1 L 413.8 331.8 L 423.6 338.8 L 440.9 399.6 L 379.4 408.7 L 401.5 330.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-33", "name_th": "ศรีสะเกษ", "name_en": "Si Sa Ket", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 10, "lat": 15.1186, "lon": 104.322, "cx": 453.8, "cy": 368.3, "px": 455.1, "py": 352.7, "path": "M 423.6 338.8 L 462.1 328.7 L 467.9 331.0 L 482.6 402.4 L 452.6 397.9 L 440.9 399.6 L 423.6 338.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-34", "name_th": "อุบลราชธานี", "name_en": "Ubon Ratchathani", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 10, "lat": 15.2287, "lon": 104.8564, "cx": 503.1, "cy": 354.1, "px": 488.1, "py": 345.9, "path": "M 467.9 331.0 L 523.0 311.1 L 534.6 323.6 L 534.8 323.7 L 534.9 323.9 L 535.0 324.0 L 535.0 324.2 L 535.1 324.4 L 535.1 324.6 L 535.1 324.7 L 535.1 324.9 L 532.4 377.1 L 532.4 377.3 L 532.3 377.5 L 532.3 377.7 L 532.2 377.8 L 532.1 378.0 L 532.0 378.1 L 511.9 405.9 L 511.8 406.1 L 511.7 406.2 L 511.6 406.3 L 511.4 406.4 L 511.2 406.5 L 511.1 406.6 L 510.9 406.6 L 510.7 406.7 L 510.5 406.7 L 510.4 406.7 L 510.2 406.7 L 482.6 402.4 L 467.9 331.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-35", "name_th": "ยโสธร", "name_en": "Yasothon", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 10, "lat": 15.7926, "lon": 104.1453, "cx": 443.1, "cy": 305.7, "px": 444.2, "py": 311.1, "path": "M 413.8 331.8 L 444.2 274.4 L 455.1 282.7 L 462.1 328.7 L 423.6 338.8 L 413.8 331.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-36", "name_th": "ชัยภูมิ", "name_en": "Chaiyaphum", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 9, "lat": 15.8068, "lon": 102.0315, "cx": 312.7, "cy": 290.3, "px": 313.9, "py": 310.3, "path": "M 261.4 327.7 L 307.9 261.6 L 317.1 264.1 L 358.4 316.4 L 359.2 319.2 L 348.6 333.1 L 270.0 339.4 L 261.4 327.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-37", "name_th": "อำนาจเจริญ", "name_en": "Amnat Charoen", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 10, "lat": 15.8657, "lon": 104.6258, "cx": 485.3, "cy": 300.2, "px": 473.9, "py": 306.6, "path": "M 455.1 282.7 L 502.9 289.4 L 523.0 311.1 L 467.9 331.0 L 462.1 328.7 L 455.1 282.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-38", "name_th": "บึงกาฬ", "name_en": "Bueng Kan", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 8, "lat": 18.3609, "lon": 103.6464, "cx": 414.9, "cy": 169.0, "px": 413.5, "py": 152.7, "path": "M 448.9 181.7 L 405.9 199.1 L 399.1 192.9 L 381.5 159.9 L 384.3 155.0 L 384.4 154.8 L 384.5 154.7 L 384.7 154.5 L 384.8 154.4 L 384.9 154.3 L 385.1 154.2 L 385.3 154.2 L 385.4 154.1 L 385.6 154.1 L 385.8 154.0 L 385.9 154.0 L 386.1 154.0 L 432.8 158.3 L 433.0 158.3 L 433.1 158.3 L 433.3 158.4 L 433.5 158.5 L 433.7 158.6 L 433.8 158.7 L 433.9 158.9 L 452.0 178.1 L 448.9 181.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-39", "name_th": "หนองบัวลำภู", "name_en": "Nong Bua Lam Phu", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 8, "lat": 17.2218, "lon": 102.426, "cx": 332.7, "cy": 220.0, "px": 338.2, "py": 223.0, "path": "M 307.9 261.6 L 302.3 252.7 L 325.2 191.8 L 339.6 198.7 L 362.3 241.4 L 317.1 264.1 L 307.9 261.6 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-40", "name_th": "ขอนแก่น", "name_en": "Khon Kaen", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 7, "lat": 16.4322, "lon": 102.8236, "cx": 355.0, "cy": 291.8, "px": 362.7, "py": 271.7, "path": "M 362.3 241.4 L 383.8 240.6 L 383.8 267.1 L 358.4 316.4 L 317.1 264.1 L 362.3 241.4 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-41", "name_th": "อุดรธานี", "name_en": "Udon Thani", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 8, "lat": 17.4138, "lon": 102.7872, "cx": 375.3, "cy": 213.8, "px": 360.5, "py": 211.1, "path": "M 339.6 198.7 L 399.1 192.9 L 405.9 199.1 L 400.2 228.6 L 383.8 240.6 L 362.3 241.4 L 339.6 198.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-42", "name_th": "เลย", "name_en": "Loei", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 8, "lat": 17.486, "lon": 101.7223, "cx": 281.7, "cy": 207.9, "px": 294.8, "py": 206.7, "path": "M 243.8 213.9 L 246.1 186.2 L 249.1 179.0 L 255.0 174.7 L 255.7 201.9 L 315.9 167.8 L 325.2 191.8 L 302.3 252.7 L 248.6 224.4 L 243.8 213.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-43", "name_th": "หนองคาย", "name_en": "Nong Khai", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 8, "lat": 17.8783, "lon": 102.742, "cx": 358.5, "cy": 184.5, "px": 357.7, "py": 182.5, "path": "M 399.1 192.9 L 339.6 198.7 L 325.2 191.8 L 315.9 167.8 L 318.0 166.6 L 318.2 166.6 L 318.3 166.5 L 318.5 166.4 L 318.7 166.4 L 318.9 166.4 L 319.0 166.4 L 319.2 166.4 L 319.4 166.5 L 319.5 166.5 L 319.7 166.6 L 319.9 166.7 L 337.9 177.2 L 372.4 175.5 L 381.5 159.9 L 399.1 192.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-44", "name_th": "มหาสารคาม", "name_en": "Maha Sarakham", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 7, "lat": 16.1851, "lon": 103.3026, "cx": 382.9, "cy": 300.6, "px": 392.3, "py": 286.9, "path": "M 383.8 267.1 L 405.3 284.9 L 390.5 324.4 L 359.2 319.2 L 358.4 316.4 L 383.8 267.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-45", "name_th": "ร้อยเอ็ด", "name_en": "Roi Et", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 7, "lat": 16.0538, "lon": 103.652, "cx": 413.0, "cy": 304.7, "px": 413.8, "py": 295.0, "path": "M 405.3 284.9 L 442.5 270.5 L 444.2 274.4 L 413.8 331.8 L 401.5 330.1 L 390.5 324.4 L 405.3 284.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-46", "name_th": "กาฬสินธุ์", "name_en": "Kalasin", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 7, "lat": 16.4314, "lon": 103.5059, "cx": 405.9, "cy": 252.7, "px": 404.8, "py": 271.7, "path": "M 383.8 240.6 L 400.2 228.6 L 442.0 264.9 L 442.5 270.5 L 405.3 284.9 L 383.8 267.1 L 383.8 240.6 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-47", "name_th": "สกลนคร", "name_en": "Sakon Nakhon", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 8, "lat": 17.1546, "lon": 104.1348, "cx": 432.0, "cy": 213.8, "px": 443.6, "py": 227.1, "path": "M 405.9 199.1 L 448.9 181.7 L 470.0 238.0 L 442.0 264.9 L 400.2 228.6 L 405.9 199.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-48", "name_th": "นครพนม", "name_en": "Nakhon Phanom", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 8, "lat": 17.392, "lon": 104.7695, "cx": 461.0, "cy": 195.3, "px": 482.7, "py": 212.5, "path": "M 470.0 238.0 L 448.9 181.7 L 452.0 178.1 L 480.8 208.9 L 481.0 209.1 L 481.1 209.2 L 481.2 209.4 L 481.2 209.6 L 481.3 209.7 L 481.3 209.9 L 481.3 210.1 L 483.2 238.8 L 470.0 238.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-49", "name_th": "มุกดาหาร", "name_en": "Mukdahan", "region": "ภาคตะวันออกเฉียงเหนือ", "health_region": 10, "lat": 16.5424, "lon": 104.7209, "cx": 469.8, "cy": 251.8, "px": 479.7, "py": 264.9, "path": "M 470.0 238.0 L 483.2 238.8 L 485.1 270.3 L 502.9 289.4 L 455.1 282.7 L 444.2 274.4 L 442.5 270.5 L 442.0 264.9 L 470.0 238.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-50", "name_th": "เชียงใหม่", "name_en": "Chiang Mai", "region": "ภาคเหนือ", "health_region": 1, "lat": 18.7883, "lon": 98.9853, "cx": 123.8, "cy": 104.0, "px": 126.0, "py": 126.4, "path": "M 117.2 65.5 L 117.8 65.4 L 141.3 83.3 L 158.4 124.7 L 153.1 130.1 L 80.7 138.0 L 117.2 65.5 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-51", "name_th": "ลำพูน", "name_en": "Lamphun", "region": "ภาคเหนือ", "health_region": 1, "lat": 18.5745, "lon": 99.0087, "cx": 98.7, "cy": 162.6, "px": 127.4, "py": 139.5, "path": "M 80.7 138.0 L 153.1 130.1 L 116.0 192.7 L 51.9 197.2 L 46.4 187.1 L 80.7 138.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-52", "name_th": "ลำปาง", "name_en": "Lampang", "region": "ภาคเหนือ", "health_region": 1, "lat": 18.2888, "lon": 99.4908, "cx": 157.2, "cy": 158.3, "px": 157.2, "py": 157.2, "path": "M 153.1 130.1 L 158.4 124.7 L 182.8 136.2 L 173.0 180.4 L 150.1 201.3 L 149.5 201.4 L 116.0 192.7 L 153.1 130.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-53", "name_th": "อุตรดิตถ์", "name_en": "Uttaradit", "region": "ภาคเหนือ", "health_region": 2, "lat": 17.6201, "lon": 100.0993, "cx": 204.3, "cy": 207.6, "px": 194.7, "py": 198.4, "path": "M 173.0 180.4 L 246.1 186.2 L 243.8 213.9 L 199.3 223.2 L 150.1 201.3 L 173.0 180.4 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-54", "name_th": "แพร่", "name_en": "Phrae", "region": "ภาคเหนือ", "health_region": 1, "lat": 18.1446, "lon": 100.1403, "cx": 202.9, "cy": 157.6, "px": 197.2, "py": 166.1, "path": "M 201.9 131.7 L 249.1 179.0 L 246.1 186.2 L 173.0 180.4 L 182.8 136.2 L 201.9 131.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-55", "name_th": "น่าน", "name_en": "Nan", "region": "ภาคเหนือ", "health_region": 1, "lat": 18.7756, "lon": 100.773, "cx": 238.2, "cy": 108.5, "px": 236.2, "py": 127.1, "path": "M 249.1 179.0 L 201.9 131.7 L 226.8 76.3 L 227.2 75.9 L 227.7 80.2 L 267.8 82.9 L 267.9 82.9 L 268.1 83.0 L 268.3 83.0 L 268.4 83.1 L 268.6 83.2 L 268.8 83.3 L 268.9 83.4 L 269.0 83.5 L 269.1 83.7 L 269.2 83.8 L 269.3 84.0 L 269.4 84.1 L 269.4 84.3 L 269.5 84.5 L 269.5 84.7 L 269.5 84.8 L 269.5 85.0 L 269.4 85.2 L 254.3 149.9 L 255.0 174.7 L 249.1 179.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-56", "name_th": "พะเยา", "name_en": "Phayao", "region": "ภาคเหนือ", "health_region": 1, "lat": 19.1665, "lon": 99.9019, "cx": 182.1, "cy": 104.0, "px": 182.5, "py": 103.0, "path": "M 158.4 124.7 L 141.3 83.3 L 226.8 76.3 L 201.9 131.7 L 182.8 136.2 L 158.4 124.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-57", "name_th": "เชียงราย", "name_en": "Chiang Rai", "region": "ภาคเหนือ", "health_region": 1, "lat": 19.9105, "lon": 99.8406, "cx": 181.3, "cy": 54.9, "px": 178.7, "py": 57.1, "path": "M 226.8 76.3 L 141.3 83.3 L 117.8 65.4 L 123.7 65.0 L 159.3 38.6 L 159.4 38.5 L 159.6 38.5 L 159.7 38.4 L 195.0 24.1 L 195.2 24.1 L 195.4 24.0 L 195.6 24.0 L 195.8 24.0 L 195.9 24.0 L 196.1 24.0 L 196.3 24.1 L 196.5 24.2 L 196.6 24.2 L 196.8 24.3 L 223.5 43.4 L 223.6 43.5 L 223.8 43.6 L 223.9 43.7 L 224.0 43.9 L 224.1 44.0 L 224.1 44.2 L 224.2 44.4 L 224.2 44.5 L 224.3 44.7 L 227.2 75.9 L 226.8 76.3 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-58", "name_th": "แม่ฮ่องสอน", "name_en": "Mae Hong Son", "region": "ภาคเหนือ", "health_region": 1, "lat": 19.302, "lon": 97.9654, "cx": 82.1, "cy": 101.9, "px": 63.1, "py": 94.7, "path": "M 80.7 138.0 L 46.4 187.1 L 25.1 148.4 L 25.0 148.2 L 25.0 148.1 L 24.9 147.9 L 24.9 147.7 L 24.9 147.5 L 24.9 147.3 L 24.9 147.2 L 24.9 147.0 L 25.0 146.8 L 25.1 146.7 L 25.2 146.5 L 25.3 146.4 L 25.4 146.2 L 25.5 146.1 L 25.7 146.0 L 25.8 145.9 L 26.0 145.8 L 51.3 134.9 L 79.2 68.9 L 79.2 68.7 L 79.3 68.6 L 79.4 68.4 L 79.6 68.3 L 79.7 68.2 L 79.9 68.1 L 80.0 68.0 L 80.2 67.9 L 80.4 67.8 L 80.6 67.8 L 80.7 67.8 L 117.2 65.5 L 80.7 138.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-63", "name_th": "ตาก", "name_en": "Tak", "region": "ภาคตะวันตก", "health_region": 2, "lat": 16.884, "lon": 99.1258, "cx": 113.7, "cy": 224.4, "px": 134.6, "py": 243.8, "path": "M 116.0 192.7 L 149.5 201.4 L 157.3 245.9 L 117.5 285.3 L 94.2 247.8 L 55.1 202.8 L 55.0 202.7 L 54.9 202.5 L 51.9 197.2 L 116.0 192.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-70", "name_th": "ราชบุรี", "name_en": "Ratchaburi", "region": "ภาคตะวันตก", "health_region": 5, "lat": 13.5283, "lon": 99.8134, "cx": 158.1, "cy": 459.6, "px": 177.1, "py": 450.8, "path": "M 176.2 465.1 L 137.8 476.7 L 138.1 466.9 L 135.5 454.2 L 173.8 432.5 L 188.7 445.2 L 176.2 465.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-71", "name_th": "กาญจนบุรี", "name_en": "Kanchanaburi", "region": "ภาคตะวันตก", "health_region": 5, "lat": 14.0228, "lon": 99.5328, "cx": 136.5, "cy": 398.0, "px": 159.7, "py": 420.3, "path": "M 154.2 375.9 L 181.8 411.6 L 173.8 432.5 L 135.5 454.2 L 131.2 433.2 L 90.4 384.5 L 90.3 384.4 L 90.2 384.3 L 90.1 384.1 L 79.6 362.0 L 154.2 375.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-76", "name_th": "เพชรบุรี", "name_en": "Phetchaburi", "region": "ภาคตะวันตก", "health_region": 5, "lat": 13.1119, "lon": 99.9397, "cx": 166.0, "cy": 486.0, "px": 184.8, "py": 476.5, "path": "M 176.2 465.1 L 195.7 469.1 L 192.2 517.8 L 144.3 512.6 L 137.3 496.1 L 137.2 495.9 L 137.2 495.8 L 137.2 495.6 L 137.1 495.3 L 137.8 476.7 L 176.2 465.1 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-77", "name_th": "ประจวบคีรีขันธ์", "name_en": "Prachuap Khiri Khan", "region": "ภาคตะวันตก", "health_region": 5, "lat": 11.8124, "lon": 99.7973, "cx": 162.7, "cy": 570.2, "px": 176.1, "py": 556.6, "path": "M 192.2 517.8 L 191.6 526.2 L 191.5 526.4 L 191.5 526.6 L 191.5 526.8 L 164.1 600.6 L 139.0 588.9 L 161.0 551.5 L 144.3 512.6 L 192.2 517.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-80", "name_th": "นครศรีธรรมราช", "name_en": "Nakhon Si Thammarat", "region": "ภาคใต้", "health_region": 11, "lat": 8.4304, "lon": 99.9631, "cx": 180.7, "cy": 742.5, "px": 186.3, "py": 765.2, "path": "M 175.8 792.2 L 156.5 784.4 L 148.5 759.7 L 186.4 725.4 L 207.5 772.8 L 207.6 773.0 L 207.6 773.2 L 210.6 787.5 L 175.8 792.2 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-81", "name_th": "กระบี่", "name_en": "Krabi", "region": "ภาคใต้", "health_region": 11, "lat": 8.0863, "lon": 98.9063, "cx": 131.7, "cy": 782.0, "px": 121.1, "py": 786.4, "path": "M 130.8 752.8 L 148.5 759.7 L 156.5 784.4 L 136.5 811.1 L 124.8 798.7 L 105.2 779.5 L 130.8 752.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-82", "name_th": "พังงา", "name_en": "Phang Nga", "region": "ภาคใต้", "health_region": 11, "lat": 8.4501, "lon": 98.5255, "cx": 99.5, "cy": 742.1, "px": 97.6, "py": 764.0, "path": "M 74.9 777.2 L 72.7 770.8 L 72.7 770.6 L 72.6 770.4 L 72.6 770.2 L 72.6 770.0 L 72.6 769.9 L 79.4 731.4 L 79.4 731.1 L 83.8 716.8 L 100.5 717.7 L 130.8 752.8 L 105.2 779.5 L 97.2 771.7 L 94.4 781.8 L 74.9 777.2 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-83", "name_th": "ภูเก็ต", "name_en": "Phuket", "region": "ภาคใต้", "health_region": 11, "lat": 7.8804, "lon": 98.3923, "cx": 87.4, "cy": 792.7, "px": 89.4, "py": 799.1, "path": "M 94.4 781.8 L 92.1 789.9 L 92.9 790.3 L 93.7 790.9 L 94.4 791.6 L 95.0 792.3 L 95.6 793.1 L 96.1 793.9 L 96.5 794.8 L 96.9 795.7 L 97.1 796.6 L 97.2 797.6 L 97.3 798.5 L 97.2 799.5 L 97.1 800.5 L 96.9 801.4 L 96.5 802.3 L 96.1 803.2 L 95.6 804.0 L 95.0 804.8 L 94.4 805.5 L 93.7 806.2 L 92.9 806.7 L 92.1 807.2 L 91.2 807.7 L 90.3 808.0 L 89.3 808.2 L 88.4 808.4 L 87.4 808.4 L 86.4 808.4 L 85.5 808.2 L 84.5 808.0 L 83.6 807.7 L 82.8 807.2 L 81.9 806.7 L 81.2 806.2 L 80.4 805.5 L 79.8 804.8 L 79.2 804.0 L 78.7 803.2 L 78.3 802.3 L 78.0 801.4 L 77.7 800.5 L 77.6 799.5 L 77.5 798.5 L 77.6 797.6 L 77.7 796.6 L 78.0 795.7 L 78.3 794.8 L 78.7 793.9 L 79.2 793.1 L 79.8 792.3 L 80.0 792.1 L 74.9 777.2 L 94.4 781.8 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-84", "name_th": "สุราษฎร์ธานี", "name_en": "Surat Thani", "region": "ภาคใต้", "health_region": 11, "lat": 9.1382, "lon": 99.3217, "cx": 144.2, "cy": 721.5, "px": 146.7, "py": 721.6, "path": "M 100.5 717.7 L 139.5 683.6 L 142.3 713.6 L 180.9 715.4 L 181.1 715.4 L 181.2 715.5 L 181.4 715.5 L 181.6 715.6 L 181.8 715.7 L 181.9 715.8 L 182.0 715.9 L 182.2 716.0 L 182.3 716.2 L 182.4 716.3 L 182.5 716.5 L 186.4 725.4 L 148.5 759.7 L 130.8 752.8 L 100.5 717.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-85", "name_th": "ระนอง", "name_en": "Ranong", "region": "ภาคใต้", "health_region": 11, "lat": 9.9529, "lon": 98.6085, "cx": 117.3, "cy": 678.7, "px": 102.7, "py": 671.3, "path": "M 138.5 673.9 L 139.5 683.6 L 100.5 717.7 L 83.8 716.8 L 97.6 672.0 L 97.7 671.7 L 110.6 644.3 L 138.5 673.9 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-86", "name_th": "ชุมพร", "name_en": "Chumphon", "region": "ภาคใต้", "health_region": 11, "lat": 10.493, "lon": 99.18, "cx": 135.1, "cy": 630.6, "px": 138.0, "py": 638.0, "path": "M 110.6 644.3 L 127.6 608.4 L 127.6 608.2 L 139.0 588.9 L 164.1 600.6 L 158.2 616.8 L 138.3 670.9 L 138.5 673.9 L 110.6 644.3 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-90", "name_th": "สงขลา", "name_en": "Songkhla", "region": "ภาคใต้", "health_region": 12, "lat": 7.1898, "lon": 100.5954, "cx": 220.0, "cy": 849.5, "px": 225.3, "py": 841.7, "path": "M 234.3 874.6 L 230.1 878.9 L 194.9 846.0 L 217.1 818.9 L 218.6 826.0 L 244.8 853.0 L 234.3 874.6 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-91", "name_th": "สตูล", "name_en": "Satun", "region": "ภาคใต้", "health_region": 12, "lat": 6.6238, "lon": 100.0674, "cx": 198.4, "cy": 870.9, "px": 192.7, "py": 876.6, "path": "M 182.4 846.0 L 194.9 846.0 L 230.1 878.9 L 229.3 890.9 L 204.9 877.8 L 195.2 887.8 L 195.0 887.9 L 194.9 888.0 L 194.7 888.1 L 194.6 888.2 L 194.4 888.2 L 194.2 888.3 L 194.1 888.3 L 193.9 888.3 L 193.7 888.3 L 193.5 888.3 L 193.3 888.2 L 193.2 888.2 L 193.0 888.1 L 192.8 888.0 L 192.7 887.9 L 192.6 887.8 L 168.2 864.1 L 168.1 864.0 L 168.0 863.9 L 167.9 863.7 L 167.8 863.6 L 167.7 863.4 L 164.7 854.6 L 182.4 846.0 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-92", "name_th": "ตรัง", "name_en": "Trang", "region": "ภาคใต้", "health_region": 12, "lat": 7.5594, "lon": 99.6114, "cx": 163.2, "cy": 822.2, "px": 164.6, "py": 818.9, "path": "M 156.5 784.4 L 175.8 792.2 L 182.4 846.0 L 164.7 854.6 L 157.3 833.2 L 136.5 811.1 L 156.5 784.4 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-93", "name_th": "พัทลุง", "name_en": "Phatthalung", "region": "ภาคใต้", "health_region": 12, "lat": 7.6167, "lon": 100.074, "cx": 195.9, "cy": 805.6, "px": 193.1, "py": 815.4, "path": "M 175.8 792.2 L 210.6 787.5 L 217.1 818.9 L 194.9 846.0 L 182.4 846.0 L 175.8 792.2 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-94", "name_th": "ปัตตานี", "name_en": "Pattani", "region": "ภาคใต้", "health_region": 12, "lat": 6.8695, "lon": 101.2505, "cx": 255.0, "cy": 864.1, "px": 265.7, "py": 861.5, "path": "M 287.7 869.7 L 234.3 874.6 L 244.8 853.0 L 252.2 860.6 L 289.0 867.6 L 289.2 867.7 L 289.2 867.7 L 287.7 869.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-95", "name_th": "ยะลา", "name_en": "Yala", "region": "ภาคใต้", "health_region": 12, "lat": 6.5411, "lon": 101.2804, "cx": 261.5, "cy": 897.3, "px": 267.5, "py": 881.7, "path": "M 234.3 874.6 L 287.7 869.7 L 274.1 933.4 L 260.1 936.0 L 259.9 936.0 L 259.7 936.0 L 259.5 936.0 L 259.4 936.0 L 259.2 935.9 L 259.0 935.8 L 258.8 935.8 L 258.7 935.7 L 258.5 935.5 L 258.4 935.4 L 258.3 935.3 L 258.2 935.1 L 258.1 935.0 L 258.0 934.8 L 258.0 934.6 L 257.9 934.4 L 253.2 903.7 L 229.3 890.9 L 230.1 878.9 L 234.3 874.6 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}, {"code": "TH-96", "name_th": "นราธิวาส", "name_en": "Narathiwat", "region": "ภาคใต้", "health_region": 12, "lat": 6.4255, "lon": 101.8253, "cx": 301.7, "cy": 900.5, "px": 301.1, "py": 888.9, "path": "M 287.7 869.7 L 289.2 867.7 L 289.4 867.7 L 289.5 867.8 L 289.7 867.9 L 289.8 868.0 L 290.0 868.1 L 321.9 900.1 L 322.1 900.3 L 322.2 900.4 L 322.3 900.6 L 322.3 900.7 L 322.4 900.9 L 322.4 901.1 L 322.5 901.3 L 322.5 901.4 L 322.5 901.6 L 322.4 901.8 L 322.4 902.0 L 322.3 902.1 L 322.3 902.3 L 322.2 902.5 L 322.1 902.6 L 301.9 927.9 L 301.8 928.1 L 301.6 928.2 L 301.5 928.3 L 301.3 928.4 L 301.2 928.5 L 301.0 928.6 L 300.8 928.6 L 274.1 933.4 L 287.7 869.7 Z", "diseases": [{"rank": 1, "name": "โรคไข้หวัดใหญ่", "keyword": "ไข้หวัดใหญ่", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 2, "name": "โรคไข้เลือดออก (Dengue)", "keyword": "ไข้เลือดออก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 3, "name": "โรคมือ เท้า ปาก", "keyword": "มือเท้าปาก", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 4, "name": "โรคไข้ฉี่หนู (Leptospirosis)", "keyword": "ไข้ฉี่หนู", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}, {"rank": 5, "name": "โรคอีสุกอีใส", "keyword": "อีสุกอีใส", "cases": "รอนำเข้าข้อมูล", "note": "ระบบเฝ้าระวัง DDS (ตัวอย่างโครงสร้าง)"}]}];
+    let DATA_SOURCE_STATUS = "TEMPLATE";
+
+    const REGION_COLORS = {
+      "ภาคเหนือ": "#38bdf8",
+      "ภาคตะวันออกเฉียงเหนือ": "#fbbf24",
+      "ภาคกลาง": "#34d399",
+      "ภาคตะวันออก": "#a78bfa",
+      "ภาคตะวันตก": "#fb923c",
+      "ภาคใต้": "#f472b6"
+    };
+
+    let activeProvince = PROVINCES_DATA.find(p => p.name_th === "นนทบุรี") || PROVINCES_DATA[0];
+    let pinnedProvinceCode = null;
+    let hideTooltipTimer = null;
+
+    let zoomScale = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    function cleanDiseaseKeyword(rawName) {
+      if (!rawName) return "";
+      let s = String(rawName).trim();
+      s = s.replace(/^[0-9]+[\.\-\s]+/, "");
+      s = s.replace(/\([^)]*\)/g, "").trim();
+      s = s.replace(/^โรค/, "").trim();
+      return s || rawName.trim();
+    }
+
+    function buildDataRiskComUrl(diseaseName, customKeyword) {
+      const modeEl = document.getElementById("search-url-mode");
+      const mode = modeEl ? modeEl.value : "datariskcom_wpdm";
+      const kw = (customKeyword && customKeyword.trim()) ? customKeyword.trim() : cleanDiseaseKeyword(diseaseName);
+      const encoded = encodeURIComponent(kw);
+      if (mode === "google_site") {
+        return `https://www.google.com/search?q=${encodeURIComponent("site:datariskcom-ddc.moph.go.th " + kw)}`;
+      }
+      return `https://datariskcom-ddc.moph.go.th/?wpdm_search=${encoded}`;
+    }
+
+    function renderMap() {
+      const provLayer = document.getElementById("provinces-layer");
+      const labelLayer = document.getElementById("labels-layer");
+      provLayer.innerHTML = "";
+      labelLayer.innerHTML = "";
+
+      PROVINCES_DATA.forEach(p => {
+        const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathEl.setAttribute("d", p.path);
+        pathEl.setAttribute("class", "province-path");
+        pathEl.setAttribute("id", `prov-${p.code}`);
+        pathEl.setAttribute("fill", REGION_COLORS[p.region] || "#94a3b8");
+        pathEl.dataset.code = p.code;
+
+        pathEl.addEventListener("mouseenter", (e) => {
+          if (!pinnedProvinceCode) {
+            showProvinceHover(p, e);
+          }
+        });
+
+        pathEl.addEventListener("mousemove", (e) => {
+          if (!pinnedProvinceCode && activeProvince && activeProvince.code === p.code) {
+            positionTooltipNearPoint(p);
+          }
+        });
+
+        pathEl.addEventListener("mouseleave", () => {
+          if (!pinnedProvinceCode) {
+            scheduleHideTooltip();
+          }
+        });
+
+        pathEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (pinnedProvinceCode === p.code) {
+            pinnedProvinceCode = null;
+          } else {
+            pinnedProvinceCode = p.code;
+          }
+          showProvinceHover(p, e, true);
+        });
+
+        provLayer.appendChild(pathEl);
+
+        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dot.setAttribute("cx", p.cx);
+        dot.setAttribute("cy", p.cy);
+        dot.setAttribute("r", "1.6");
+        dot.setAttribute("class", "province-dot");
+        labelLayer.appendChild(dot);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", p.cx);
+        text.setAttribute("y", p.cy - 3.2);
+        text.setAttribute("class", "province-label");
+        text.setAttribute("id", `label-${p.code}`);
+        text.textContent = p.name_th;
+        labelLayer.appendChild(text);
+      });
+    }
+
+    function positionTooltipNearPoint(p) {
+      const tooltip = document.getElementById("hover-tooltip");
+      const svg = document.getElementById("thailand-svg");
+      const rect = svg.getBoundingClientRect();
+
+      const transformedX = p.cx * zoomScale + panX;
+      const transformedY = p.cy * zoomScale + panY;
+
+      const scaleX = rect.width / 560;
+      const scaleY = rect.height / 960;
+      const px = transformedX * scaleX;
+      const py = transformedY * scaleY;
+
+      const ttW = 315;
+      const ttH = 290;
+      let left = px + 18;
+      if (left + ttW > rect.width - 12) {
+        left = Math.max(12, px - ttW - 18);
+      }
+      let top = py - 40;
+      if (top + ttH > rect.height - 12) {
+        top = Math.max(12, rect.height - ttH - 12);
+      }
+      if (top < 12) top = 12;
+
+      tooltip.style.left = `${Math.round(left)}px`;
+      tooltip.style.top = `${Math.round(top)}px`;
+    }
+
+    function showProvinceHover(p, evt, forceShow = false) {
+      cancelHideTooltip();
+      activeProvince = p;
+
+      document.querySelectorAll(".province-path").forEach(el => {
+        el.classList.toggle("active", el.dataset.code === p.code);
+      });
+
+      const tooltip = document.getElementById("hover-tooltip");
+      document.getElementById("tt-prov-name").textContent = `จ.${p.name_th} (${p.name_en})`;
+      document.getElementById("tt-prov-meta").textContent = `${p.region} • เขตสุขภาพที่ ${p.health_region}`;
+
+      const pinBtn = document.getElementById("tt-pin-btn");
+      if (pinnedProvinceCode === p.code) {
+        pinBtn.textContent = "📌 ตรึงอยู่ (คลิกเพื่อปลด)";
+        pinBtn.classList.add("pinned");
+      } else {
+        pinBtn.textContent = "📌 คลิกจังหวัดเพื่อตรึง";
+        pinBtn.classList.remove("pinned");
+      }
+
+      const listEl = document.getElementById("tt-disease-list");
+      listEl.innerHTML = "";
+      p.diseases.slice(0, 5).forEach((d, idx) => {
+        const rank = idx + 1;
+        const url = buildDataRiskComUrl(d.name, d.keyword);
+        const a = document.createElement("a");
+        a.className = "disease-item-link";
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.title = `คลิกเพื่อค้นหาสื่อเรื่อง "${d.name}" บน datariskcom-ddc.moph.go.th`;
+        a.innerHTML = `
+          <span class="rank-badge rank-${rank}">${rank}</span>
+          <div class="disease-name-wrap">
+            <span class="disease-name-text">${d.name}</span>
+            <span class="disease-cases-text">${d.cases || ""}</span>
+          </div>
+          <span class="search-action-pill">🔍 ค้นหาสื่อ ↗</span>
+        `;
+        listEl.appendChild(a);
+      });
+
+      tooltip.classList.add("visible");
+      positionTooltipNearPoint(p);
+      renderSidePanel(p);
+    }
+
+    function scheduleHideTooltip() {
+      if (pinnedProvinceCode) return;
+      clearTimeout(hideTooltipTimer);
+      hideTooltipTimer = setTimeout(() => {
+        document.getElementById("hover-tooltip").classList.remove("visible");
+      }, 260);
+    }
+
+    function cancelHideTooltip() {
+      clearTimeout(hideTooltipTimer);
+    }
+
+    function togglePinCurrentProvince() {
+      if (!activeProvince) return;
+      if (pinnedProvinceCode === activeProvince.code) {
+        pinnedProvinceCode = null;
+      } else {
+        pinnedProvinceCode = activeProvince.code;
+      }
+      showProvinceHover(activeProvince);
+    }
+
+    function renderSidePanel(p) {
+      document.getElementById("side-prov-title").textContent = `จังหวัด${p.name_th} (${p.name_en})`;
+      document.getElementById("side-prov-sub").textContent = `${p.region} • เขตสุขภาพที่ ${p.health_region} • รหัส ${p.code}`;
+      const container = document.getElementById("side-disease-cards");
+      container.innerHTML = "";
+
+      p.diseases.slice(0, 5).forEach((d, idx) => {
+        const rank = idx + 1;
+        const url = buildDataRiskComUrl(d.name, d.keyword);
+        const card = document.createElement("a");
+        card.className = "side-disease-card";
+        card.href = url;
+        card.target = "_blank";
+        card.rel = "noopener noreferrer";
+        card.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <span class="rank-badge rank-${rank}" style="width:28px;height:28px;font-size:0.85rem;">${rank}</span>
+            <div style="min-width:0;">
+              <div style="font-weight:700;font-size:0.92rem;color:var(--text-main);">${d.name}</div>
+              <div style="font-size:0.78rem;color:var(--text-muted);">ข้อมูลผู้ป่วย/สถานะ: <strong>${d.cases || "-"}</strong></div>
+            </div>
+          </div>
+          <span class="btn btn-primary" style="padding:6px 11px;font-size:0.78rem;flex-shrink:0;">ค้นหาสื่อ DataRiskCom ↗</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderTable() {
+      const q = (document.getElementById("search-province").value || "").trim().toLowerCase();
+      const regFilter = document.getElementById("filter-region").value;
+      const tbody = document.getElementById("province-table-body");
+      tbody.innerHTML = "";
+
+      let visibleCount = 0;
+      PROVINCES_DATA.forEach(p => {
+        const matchText = !q || p.name_th.toLowerCase().includes(q) || p.name_en.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+        let matchReg = true;
+        if (regFilter !== "ALL") {
+          if (regFilter.startsWith("HR-")) {
+            const hr = parseInt(regFilter.replace("HR-", ""), 10);
+            matchReg = (p.health_region === hr);
+          } else {
+            matchReg = (p.region === regFilter);
+          }
+        }
+        const isMatch = matchText && matchReg;
+
+        const pathEl = document.getElementById(`prov-${p.code}`);
+        if (pathEl) {
+          pathEl.classList.toggle("dimmed", !isMatch);
+        }
+
+        if (isMatch) {
+          visibleCount++;
+          const tr = document.createElement("tr");
+          tr.style.cursor = "pointer";
+          tr.addEventListener("click", (e) => {
+            if (e.target.tagName.toLowerCase() === "a") return;
+            pinnedProvinceCode = p.code;
+            showProvinceHover(p, null, true);
+            document.getElementById("map-viewport").scrollIntoView({ behavior: "smooth", block: "nearest" });
+          });
+
+          const cellsHtml = p.diseases.slice(0, 5).map((d, i) => {
+            const url = buildDataRiskComUrl(d.name, d.keyword);
+            const caseSuffix = (d.cases && d.cases !== "รอนำเข้าข้อมูล") ? ` (${d.cases})` : "";
+            return `<td><a class="tbl-disease-chip" href="${url}" target="_blank" rel="noopener noreferrer" title="คลิกเพื่อค้นหาสื่อ ${d.name}">${i+1}. ${d.name}${caseSuffix} ↗</a></td>`;
+          }).join("");
+
+          tr.innerHTML = `
+            <td><code>${p.code}</code></td>
+            <td><strong>${p.name_th}</strong><br/><span style="font-size:0.75rem;color:var(--text-muted);">${p.name_en}</span></td>
+            <td>${p.region}<br/><span style="font-size:0.75rem;color:var(--text-muted);">เขตสุขภาพที่ ${p.health_region}</span></td>
+            ${cellsHtml}
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+
+      document.getElementById("table-count-badge").textContent = `แสดง ${visibleCount} จังหวัด`;
+    }
+
+    function applyFilters() {
+      renderTable();
+    }
+
+    function refreshActiveViews() {
+      if (activeProvince) {
+        showProvinceHover(activeProvince);
+      }
+      renderTable();
+    }
+
+    function updateTransform() {
+      const g = document.getElementById("map-zoom-group");
+      g.setAttribute("transform", `translate(${panX}, ${panY}) scale(${zoomScale})`);
+      if (activeProvince && document.getElementById("hover-tooltip").classList.contains("visible")) {
+        positionTooltipNearPoint(activeProvince);
+      }
+    }
+
+    function zoomMap(factor) {
+      const newScale = Math.min(8, Math.max(0.85, zoomScale * factor));
+      const cx = 280;
+      const cy = 480;
+      panX = cx - (cx - panX) * (newScale / zoomScale);
+      panY = cy - (cy - panY) * (newScale / zoomScale);
+      zoomScale = newScale;
+      updateTransform();
+    }
+
+    function focusBKK() {
+      zoomScale = 3.8;
+      panX = 280 - 255 * zoomScale;
+      panY = 480 - 525 * zoomScale;
+      updateTransform();
+    }
+
+    function resetMapZoom() {
+      zoomScale = 1;
+      panX = 0;
+      panY = 0;
+      updateTransform();
+    }
+
+    const svgEl = document.getElementById("thailand-svg");
+    svgEl.addEventListener("mousedown", (e) => {
+      if (e.target.classList.contains("province-path")) return;
+      isDragging = true;
+      dragStartX = e.clientX - panX;
+      dragStartY = e.clientY - panY;
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - dragStartX;
+      panY = e.clientY - dragStartY;
+      updateTransform();
+    });
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    function openImportModal() {
+      document.getElementById("import-modal").classList.add("open");
+    }
+    function closeImportModal() {
+      document.getElementById("import-modal").classList.remove("open");
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        document.getElementById("paste-data-input").value = evt.target.result;
+      };
+      reader.readAsText(file, "UTF-8");
+    }
+
+    function applyPastedData() {
+      const raw = (document.getElementById("paste-data-input").value || "").trim();
+      if (!raw) {
+        alert("กรุณาเลือกไฟล์หรือวางข้อมูลตารางก่อนกดนำเข้า");
+        return;
+      }
+      let updatedProvinces = 0;
+      try {
+        if (raw.startsWith("[") || raw.startsWith("{")) {
+          const parsed = JSON.parse(raw);
+          const arr = Array.isArray(parsed) ? parsed : (parsed.provinces || []);
+          arr.forEach(item => {
+            const target = PROVINCES_DATA.find(p => p.name_th === item.province || p.name_th === item.name_th || p.code === item.code);
+            if (target && Array.isArray(item.diseases)) {
+              target.diseases = item.diseases.slice(0, 5).map((d, i) => ({
+                rank: i + 1,
+                name: d.name || String(d),
+                keyword: cleanDiseaseKeyword(d.name || String(d)),
+                cases: d.cases || "ข้อมูลนำเข้าจริง"
+              }));
+              updatedProvinces++;
+            }
+          });
+        } else {
+          const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          const byProv = {};
+          lines.forEach(line => {
+            const cols = line.includes("\t") ? line.split("\t").map(c => c.trim()) : line.split(",").map(c => c.trim());
+            if (cols.length < 2) return;
+            const provCell = cols[0].replace(/^จังหวัด/, "").trim();
+            const matchProv = PROVINCES_DATA.find(p => p.name_th === provCell || p.name_en.toLowerCase() === provCell.toLowerCase());
+            if (!matchProv) return;
+
+            if (cols.length >= 6 && isNaN(parseInt(cols[1], 10))) {
+              matchProv.diseases = cols.slice(1, 6).map((cellText, idx) => ({
+                rank: idx + 1,
+                name: cellText,
+                keyword: cleanDiseaseKeyword(cellText),
+                cases: "ข้อมูลนำเข้าจากตาราง"
+              }));
+              updatedProvinces++;
+            } else {
+              if (!byProv[matchProv.code]) byProv[matchProv.code] = [];
+              const maybeRank = parseInt(cols[1], 10);
+              if (!isNaN(maybeRank) && cols.length >= 3) {
+                byProv[matchProv.code].push({
+                  rank: maybeRank,
+                  name: cols[2],
+                  keyword: cleanDiseaseKeyword(cols[2]),
+                  cases: cols[3] || "ข้อมูลนำเข้า"
+                });
+              } else {
+                byProv[matchProv.code].push({
+                  rank: byProv[matchProv.code].length + 1,
+                  name: cols[1],
+                  keyword: cleanDiseaseKeyword(cols[1]),
+                  cases: cols[2] || "ข้อมูลนำเข้า"
+                });
+              }
+            }
+          });
+
+          Object.keys(byProv).forEach(code => {
+            const target = PROVINCES_DATA.find(p => p.code === code);
+            if (target && byProv[code].length > 0) {
+              const sorted = byProv[code].sort((a, b) => a.rank - b.rank).slice(0, 5);
+              while (sorted.length < 5) {
+                sorted.push({ rank: sorted.length + 1, name: "-", keyword: "", cases: "-" });
+              }
+              target.diseases = sorted;
+              updatedProvinces++;
+            }
+          });
+        }
+      } catch (err) {
+        alert("เกิดข้อผิดพลาดในการแปลงข้อมูล: " + err.message);
+        return;
+      }
+
+      if (updatedProvinces > 0) {
+        DATA_SOURCE_STATUS = "IMPORTED";
+        document.getElementById("status-mode-label").textContent = `อัปเดตข้อมูลนำเข้าแล้ว (${updatedProvinces} จังหวัด)`;
+        closeImportModal();
+        refreshActiveViews();
+      } else {
+        alert("ไม่พบชื่อจังหวัดที่ตรงกับทั้ง 77 จังหวัด กรุณาตรวจสอบคอลัมน์แรกให้เป็นชื่อจังหวัดภาษาไทย เช่น กรุงเทพมหานคร, นนทบุรี, เชียงใหม่");
+      }
+    }
+
+    function openEditProvinceModal() {
+      if (!activeProvince) return;
+      document.getElementById("edit-modal-title").textContent = `✏️ แก้ไข 5 อันดับโรค: จังหวัด${activeProvince.name_th}`;
+      const form = document.getElementById("edit-prov-form");
+      form.innerHTML = "";
+      activeProvince.diseases.slice(0, 5).forEach((d, idx) => {
+        const row = document.createElement("div");
+        row.style.display = "grid";
+        row.style.gridTemplateColumns = "90px 1fr 140px";
+        row.style.gap = "8px";
+        row.style.alignItems = "center";
+        row.innerHTML = `
+          <span style="font-size:0.84rem;font-weight:700;">อันดับที่ ${idx + 1}:</span>
+          <input type="text" class="input-control" id="edit-d-name-${idx}" value="${d.name}" placeholder="ชื่อโรค" />
+          <input type="text" class="input-control" id="edit-d-cases-${idx}" value="${d.cases}" placeholder="จำนวนผู้ป่วย/อัตรา" />
+        `;
+        form.appendChild(row);
+      });
+      document.getElementById("edit-prov-modal").classList.add("open");
+    }
+
+    function closeEditProvinceModal() {
+      document.getElementById("edit-prov-modal").classList.remove("open");
+    }
+
+    function saveEditedProvince() {
+      if (!activeProvince) return;
+      for (let i = 0; i < 5; i++) {
+        const nameVal = document.getElementById(`edit-d-name-${i}`).value.trim() || "-";
+        const casesVal = document.getElementById(`edit-d-cases-${i}`).value.trim() || "-";
+        activeProvince.diseases[i] = {
+          rank: i + 1,
+          name: nameVal,
+          keyword: cleanDiseaseKeyword(nameVal),
+          cases: casesVal
+        };
+      }
+      document.getElementById("status-mode-label").textContent = "แก้ไขข้อมูลรายจังหวัดแล้ว";
+      closeEditProvinceModal();
+      refreshActiveViews();
+    }
+
+    function exportStandaloneHTML() {
+      const currentHtml = document.documentElement.outerHTML;
+      const updatedJson = JSON.stringify(PROVINCES_DATA);
+      const replaced = currentHtml.replace(
+        /const PROVINCES_DATA = \[[\s\S]*?\];/,
+        `const PROVINCES_DATA = ${updatedJson};`
+      );
+      const blob = new Blob(["<!DOCTYPE html>\n" + replaced], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "thailand_disease_map_ddc_updated.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      renderMap();
+      renderTable();
+      showProvinceHover(activeProvince);
+    });
+  </script>
+</body>
+</html>
