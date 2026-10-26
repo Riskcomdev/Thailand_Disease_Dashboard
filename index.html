@@ -1,0 +1,2515 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบปฏิทินรณรงค์และผลิตสื่อประชาสัมพันธ์ (Content Calendar) - กรมควบคุมโรค</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background-color: #ffffff;
+      }
+      .print-full {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Header -->
+  <header class="bg-gradient-to-r from-emerald-900 via-teal-800 to-emerald-800 text-white shadow-md sticky top-0 z-30 no-print">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner shrink-0">
+          <svg class="w-7 h-7 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight">ปฏิทินรณรงค์และผลิตสื่อประชาสัมพันธ์ (Content Calendar)</h1>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-100 border border-emerald-300/30 font-medium">กรมควบคุมโรค (DDC)</span>
+          </div>
+          <p class="text-xs sm:text-sm text-emerald-100/90">ระบบบริหารจัดการประเด็นรณรงค์รายสัปดาห์ (W1–W5) ระบุหน่วยงานรับผิดชอบและรูปแบบการผลิตสื่อ</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btnDownloadHtmlDirect" onclick="exportStandaloneHTML()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold text-xs sm:text-sm shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>ดาวน์โหลดไฟล์ HTML</span>
+        </button>
+        <button id="btnAddCampaign" onclick="openCampaignModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold text-xs sm:text-sm shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+          <span>เพิ่มประเด็นรณรงค์</span>
+        </button>
+        <button id="btnManageMaster" onclick="openMasterModal('agencies')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white font-semibold text-xs sm:text-sm border border-white/30 shadow-xs transition">
+          <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>ตั้งค่าหน่วยงาน/สื่อ</span>
+        </button>
+        <div class="relative inline-block">
+          <button id="btnExportMenu" onclick="toggleExportDropdown()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm border border-white/20 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            <span>ส่งออก / บันทึก</span>
+          </button>
+          <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 text-slate-700 z-50">
+            <button onclick="exportCSV()" class="w-full text-left px-4 py-2 text-xs sm:text-sm hover:bg-slate-50 flex items-center gap-2.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>ดาวน์โหลดตาราง CSV (เปิดใน Excel)</span>
+            </button>
+            <button onclick="exportStandaloneHTML()" class="w-full text-left px-4 py-2 text-xs sm:text-sm hover:bg-slate-50 flex items-center gap-2.5">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span>บันทึกไฟล์ HTML (พร้อมข้อมูลที่แก้ไข)</span>
+            </button>
+            <button onclick="exportJSON()" class="w-full text-left px-4 py-2 text-xs sm:text-sm hover:bg-slate-50 flex items-center gap-2.5">
+              <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span>ส่งออกข้อมูล JSON สำรอง</span>
+            </button>
+            <button onclick="window.print()" class="w-full text-left px-4 py-2 text-xs sm:text-sm hover:bg-slate-50 flex items-center gap-2.5">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>พิมพ์ปฏิทิน / บันทึกเป็น PDF</span>
+            </button>
+            <div class="border-t border-slate-100 my-1"></div>
+            <button onclick="openResetConfirmModal()" class="w-full text-left px-4 py-2 text-xs sm:text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2.5">
+              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+              <span>รีเซ็ตข้อมูลกลับเป็นค่าเริ่มต้น</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5 print-full space-y-5">
+
+    <!-- KPI Summary Cards -->
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 no-print">
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500">ประเด็นรณรงค์ทั้งหมด</p>
+          <p id="statTotal" class="text-2xl font-bold text-slate-800 mt-0.5">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">ครอบคลุม 12 เดือน (W1–W5)</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500">ชิ้นงาน อินโฟกราฟิก</p>
+          <p id="statInfoCount" class="text-2xl font-bold text-teal-700 mt-0.5">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">หัวข้อที่ใช้สื่ออินโฟกราฟิก</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500">ชิ้นงาน วิดีโอสั้น (Reels/TikTok)</p>
+          <p id="statVideoCount" class="text-2xl font-bold text-rose-600 mt-0.5">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">หัวข้อที่ใช้สื่อวิดีโอสั้น</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500">ระบุหน่วยงานรับผิดชอบแล้ว</p>
+          <p id="statAssignedCount" class="text-2xl font-bold text-blue-600 mt-0.5">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">พร้อมมอบหมายภารกิจ</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center justify-between col-span-2 lg:col-span-1">
+        <div>
+          <p class="text-xs font-medium text-slate-500">กำลังผลิต / เผยแพร่แล้ว</p>
+          <p id="statProgressCount" class="text-2xl font-bold text-amber-600 mt-0.5">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">ติดตามสถานะการดำเนินงาน</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs & Filter Bar -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4 no-print">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+        <!-- View Switcher Tabs -->
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl flex-wrap">
+          <button id="tabMatrix" onclick="switchView('matrix')" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition bg-emerald-700 text-white shadow-sm">
+            📅 ตารางปฏิทินรายสัปดาห์ (W1–W5)
+          </button>
+          <button id="tabMonthly" onclick="switchView('monthly')" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:text-slate-900">
+            🗂️ จัดการรายเดือน & ปรับวิธีรณรงค์ด่วน
+          </button>
+          <button id="tabList" onclick="switchView('list')" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:text-slate-900">
+            📋 ตารางรายการผลิตสื่อ (List View)
+          </button>
+          <button id="tabDashboard" onclick="switchView('dashboard')" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:text-slate-900">
+            📊 สรุปภารกิจรายหน่วยงาน (Dashboard)
+          </button>
+        </div>
+
+        <!-- Quick Hint -->
+        <div class="text-xs text-slate-500 flex items-center gap-1.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>คลิกที่การ์ดประเด็น หรือป้ายหน่วยงาน/วิธีรณรงค์ เพื่อแก้ไขและบันทึกอัตโนมัติ</span>
+        </div>
+      </div>
+
+      <!-- Filter Controls -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <!-- Search -->
+        <div class="lg:col-span-2 relative">
+          <input id="filterSearch" type="text" oninput="applyFilters()" placeholder="ค้นหาชื่อโรค, ประเด็นรณรงค์, กลุ่มเป้าหมาย..." class="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+
+        <!-- Month Filter -->
+        <div>
+          <select id="filterMonth" onchange="applyFilters()" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="all">ทุกเดือน (ม.ค. – ธ.ค.)</option>
+          </select>
+        </div>
+
+        <!-- Week Filter -->
+        <div>
+          <select id="filterWeek" onchange="applyFilters()" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="all">ทุกสัปดาห์ (W1 – W5)</option>
+            <option value="W1">สัปดาห์ที่ 1 (W1)</option>
+            <option value="W2">สัปดาห์ที่ 2 (W2)</option>
+            <option value="W3">สัปดาห์ที่ 3 (W3)</option>
+            <option value="W4">สัปดาห์ที่ 4 (W4)</option>
+            <option value="W5">สัปดาห์ที่ 5 (W5)</option>
+          </select>
+        </div>
+
+        <!-- Agency Filter -->
+        <div>
+          <select id="filterAgency" onchange="applyFilters()" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="all">ทุกหน่วยงานภายใน กรมควบคุมโรค</option>
+          </select>
+        </div>
+
+        <!-- Method Filter -->
+        <div class="flex gap-2">
+          <select id="filterMethod" onchange="applyFilters()" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="all">ทุกวิธีการรณรงค์ / รูปแบบสื่อ</option>
+          </select>
+          <button id="btnClearFilters" onclick="resetFilters()" title="ล้างตัวกรอง" class="px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-medium shrink-0">
+            ล้างค่า
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Method Filter Pills -->
+      <div class="flex items-center gap-2 flex-wrap pt-1">
+        <span class="text-xs font-semibold text-slate-500">กรองด่วนตามสื่อ:</span>
+        <div id="quickMethodPills" class="flex items-center gap-1.5 flex-wrap"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 1: WEEKLY MATRIX VIEW (12 Months x W1-W5) -->
+    <section id="viewMatrix" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base font-bold text-slate-800">ตารางปฏิทินประเด็นรณรงค์และผลิต Content รายสัปดาห์ (W1–W5)</h2>
+          <p class="text-xs text-slate-500">แสดงประเด็นหลักตามปฏิทินทั้ง 12 เดือน พร้อมหน่วยงานภายในกรมควบคุมโรคและรูปแบบสื่อที่ต้องผลิต (คลิกที่การ์ดเพื่อระบุหรือแก้ไขข้อมูล)</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">คลิกปุ่ม + ในช่องสัปดาห์เพื่อเพิ่มหัวข้อ</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full border-collapse min-w-[1150px] text-left">
+          <thead>
+            <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider">
+              <th class="py-3 px-3 w-36 border-r border-slate-700">เดือน</th>
+              <th class="py-3 px-3 w-64 border-r border-slate-700 bg-slate-900/50">ประเด็นหลักประจำเดือน (ภาพรวม)</th>
+              <th class="py-3 px-3 border-r border-slate-700 text-center">W1 (สัปดาห์ที่ 1)</th>
+              <th class="py-3 px-3 border-r border-slate-700 text-center">W2 (สัปดาห์ที่ 2)</th>
+              <th class="py-3 px-3 border-r border-slate-700 text-center">W3 (สัปดาห์ที่ 3)</th>
+              <th class="py-3 px-3 border-r border-slate-700 text-center">W4 (สัปดาห์ที่ 4)</th>
+              <th class="py-3 px-3 text-center">W5 (สัปดาห์ที่ 5)</th>
+            </tr>
+          </thead>
+          <tbody id="matrixTableBody" class="divide-y divide-slate-200 text-xs sm:text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- VIEW 2: MONTHLY WORKSPACE VIEW (Quick Toggle Agencies & Methods) -->
+    <section id="viewMonthly" class="hidden space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-800">มุมมองจัดการรายเดือน (ติ๊กเลือกหน่วยงานและวิธีการรณรงค์ได้ทันที)</h2>
+          <p class="text-xs text-slate-500">คลิกปุ่มวิธีรณรงค์ (เช่น อินโฟกราฟิก, วิดีโอสั้น) บนการ์ดแต่ละประเด็นเพื่อเปิด/ปิดรูปแบบการผลิตสื่อ หรือเปลี่ยนหน่วยงานรับผิดชอบได้อย่างรวดเร็ว</p>
+        </div>
+        <div id="monthQuickSelector" class="flex items-center gap-1 flex-wrap"></div>
+      </div>
+      <div id="monthlyCardsContainer" class="space-y-6"></div>
+    </section>
+
+    <!-- VIEW 3: LIST & TABLE VIEW -->
+    <section id="viewList" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-800">รายการแผนผลิตสื่อรณรงค์ทั้งหมด (Actionable Production Sheet)</h2>
+          <p class="text-xs text-slate-500">ตรวจสอบและอัปเดตสถานะการผลิตสื่อ หน่วยงานเจ้าของเรื่อง และรูปแบบสื่อรณรงค์รายประเด็น</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="filterStatus" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+            <option value="all">ทุกสถานะการผลิต</option>
+            <option value="planned">รอดำเนินการ</option>
+            <option value="producing">กำลังผลิตสื่อ</option>
+            <option value="review">รอตรวจทาน/อนุมัติ</option>
+            <option value="published">เผยแพร่แล้ว</option>
+          </select>
+        </div>
+      </div>
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full border-collapse min-w-[1000px] text-left">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 text-xs font-bold border-b border-slate-200">
+              <th class="py-3 px-4 w-28">เดือน / สัปดาห์</th>
+              <th class="py-3 px-4 w-80">ประเด็นรณรงค์ / โรคและภัยสุขภาพ</th>
+              <th class="py-3 px-4 w-64">หน่วยงานที่ดำเนินการ (กรมควบคุมโรค)</th>
+              <th class="py-3 px-4 w-72">วิธีการรณรงค์ / รูปแบบ Content</th>
+              <th class="py-3 px-4 w-36">สถานะการผลิต</th>
+              <th class="py-3 px-4 w-28 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="listTableBody" class="divide-y divide-slate-200 text-xs sm:text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- VIEW 4: DASHBOARD & AGENCY SUMMARY -->
+    <section id="viewDashboard" class="hidden space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Chart 1: Agency Workload -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="mb-3">
+            <h3 class="text-sm sm:text-base font-bold text-slate-800">จำนวนประเด็นรณรงค์แยกตามหน่วยงานภายในกรมควบคุมโรค</h3>
+            <p class="text-xs text-slate-500">สรุปภาระงานตามการมอบหมายหน่วยงานรับผิดชอบ</p>
+          </div>
+          <div class="relative h-72">
+            <canvas id="chartAgency"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Campaign Methods Breakdown -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="mb-3">
+            <h3 class="text-sm sm:text-base font-bold text-slate-800">สัดส่วนวิธีการรณรงค์และรูปแบบการผลิต Content</h3>
+            <p class="text-xs text-slate-500">เปรียบเทียบจำนวนชิ้นงานอินโฟกราฟิก วิดีโอสั้น ข่าวแจก และสื่ออื่นๆ</p>
+          </div>
+          <div class="relative h-72">
+            <canvas id="chartMethod"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agency Directory & Task Breakdown -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-slate-800">ตารางสรุปภารกิจของแต่ละหน่วยงานภายในกรมควบคุมโรค</h3>
+            <p class="text-xs text-slate-500">คลิกปุ่ม "ดูตารางเฉพาะหน่วยงานนี้" เพื่อกรองตารางปฏิทินเฉพาะหน่วยงานที่ต้องการ</p>
+          </div>
+        </div>
+        <div id="agencyBreakdownGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: ADD / EDIT CAMPAIGN ITEM -->
+  <div id="campaignModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 bg-gradient-to-r from-emerald-800 to-teal-800 text-white flex items-center justify-between">
+        <div>
+          <h3 id="modalTitle" class="text-base sm:text-lg font-bold">แก้ไขประเด็นรณรงค์และกำหนดผู้รับผิดชอบ</h3>
+          <p class="text-xs text-emerald-100">ระบุหน่วยงานภายในกรมควบคุมโรคและรูปแบบการผลิต Content</p>
+        </div>
+        <button onclick="closeCampaignModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scrollbar space-y-4 text-xs sm:text-sm">
+        <input type="hidden" id="editItemId">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">เดือนที่รณรงค์ *</label>
+            <select id="editMonth" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 bg-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">สัปดาห์ที่ดำเนินการ *</label>
+            <select id="editWeek" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="W1">W1 (สัปดาห์ที่ 1)</option>
+              <option value="W2">W2 (สัปดาห์ที่ 2)</option>
+              <option value="W3">W3 (สัปดาห์ที่ 3)</option>
+              <option value="W4">W4 (สัปดาห์ที่ 4)</option>
+              <option value="W5">W5 (สัปดาห์ที่ 5)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">สถานะการผลิต</label>
+            <select id="editStatus" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="planned">⏳ รอดำเนินการ</option>
+              <option value="producing">🎨 กำลังผลิตสื่อ</option>
+              <option value="review">🔍 รอตรวจทาน/อนุมัติ</option>
+              <option value="published">✅ เผยแพร่แล้ว</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">หัวข้อประเด็นรณรงค์ / โรคและภัยสุขภาพ *</label>
+          <input id="editTitle" type="text" placeholder="เช่น โรคไข้เลือดออก มาตรการ 3 เก็บ ป้องกัน 3 โรค" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <!-- Step 1: Agencies Multi-Select -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-slate-700">1. เลือกหน่วยงานที่ร่วมดำเนินการ (ภายในกรมควบคุมโรค) * <span class="font-normal text-slate-500">(ติ๊กเลือกหน่วยงานเพื่อกำหนดรูปแบบสื่อรายหน่วยงานด้านล่าง)</span></label>
+          </div>
+          <div id="editAgenciesContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-3 rounded-xl border border-slate-200 bg-slate-50 custom-scrollbar"></div>
+          <div class="mt-2 flex gap-2">
+            <input id="quickNewAgency" type="text" placeholder="เพิ่มชื่อหน่วยงานอื่นเพิ่มเติม (เช่น สคร.1 เชียงใหม่)..." class="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
+            <button type="button" onclick="addCustomAgencyFromModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium">+ เพิ่มหน่วยงาน</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Per-Agency Media Format Assignment -->
+        <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-1">
+            <label class="block text-xs font-bold text-emerald-950">2. กำหนดรูปแบบสื่อแยกตามหน่วยงานที่รับผิดชอบ * <span class="font-normal text-emerald-800">(เช่น กอพ. ทำอินโฟ+วิดีโอสั้น / สสพ. ทำข่าวแจก)</span></label>
+          </div>
+          <div id="editAgencyMethodsMatrix" class="space-y-2.5"></div>
+          <!-- Hidden legacy container kept for compatibility -->
+          <div id="editMethodsContainer" class="hidden"></div>
+          <div class="pt-1 flex gap-2">
+            <input id="quickNewMethod" type="text" placeholder="เพิ่มรูปแบบสื่อรณรงค์ใหม่ (เช่น กิจกรรมลงพื้นที่, แถลงข่าว)..." class="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+            <button type="button" onclick="addCustomMethodFromModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium">+ เพิ่มวิธีรณรงค์</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">กลุ่มเป้าหมายหลัก / ประเด็นสื่อสารเน้นย้ำ</label>
+            <input id="editTarget" type="text" placeholder="เช่น เด็กเล็ก, ผู้สูงอายุ, เกษตรกร, ประชาชนทั่วไป" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ช่องทางเผยแพร่ / ลิงก์ไฟล์งาน (ถ้ามี)</label>
+            <input id="editNote" type="text" placeholder="เช่น เพจไทยรู้สู้โรค, TikTok กรมควบคุมโรค, ลิงก์ Google Drive" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+        <button id="btnDeleteItem" type="button" onclick="deleteCurrentModalItem()" class="px-3.5 py-2 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold text-xs sm:text-sm transition">
+          ลบประเด็นนี้
+        </button>
+        <div class="flex items-center gap-2 ml-auto">
+          <button type="button" onclick="closeCampaignModal()" class="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm">ยกเลิก</button>
+          <button type="button" onclick="saveCampaignItem()" class="px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs sm:text-sm shadow-sm">บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: MANAGE AGENCIES, CAMPAIGNS & CAMPAIGN METHODS -->
+  <div id="masterModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 bg-slate-800 text-white flex items-center justify-between">
+        <div>
+          <h3 class="text-base sm:text-lg font-bold">⚙️ ตั้งค่าระบบ: ปรับลด/เพิ่ม หน่วยงาน, ประเด็นรณรงค์ และรูปแบบสื่อ</h3>
+          <p class="text-xs text-slate-300">สามารถเพิ่ม แก้ไข หรือลบ (ปรับลด) รายชื่อหน่วยงาน ประเด็นรณรงค์รายสัปดาห์/รายเดือน และวิธีการรณรงค์ได้ตามต้องการ</p>
+        </div>
+        <button onclick="closeMasterModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Settings Sub-navigation Tabs -->
+      <div class="px-5 pt-3 bg-slate-100 border-b border-slate-200 flex gap-2 flex-wrap">
+        <button id="masterTabBtnAgencies" onclick="switchMasterTab('agencies')" class="px-4 py-2 rounded-t-xl font-bold text-xs sm:text-sm bg-white text-emerald-800 border-t border-x border-slate-200">
+          🏢 1. ปรับลด/จัดการหน่วยงาน (<span id="masterCountAgencies">0</span>)
+        </button>
+        <button id="masterTabBtnCampaigns" onclick="switchMasterTab('campaigns')" class="px-4 py-2 rounded-t-xl font-bold text-xs sm:text-sm text-slate-600 hover:text-slate-900">
+          📌 2. ปรับลด/จัดการประเด็นรณรงค์ (<span id="masterCountCampaigns">0</span>)
+        </button>
+        <button id="masterTabBtnMethods" onclick="switchMasterTab('methods')" class="px-4 py-2 rounded-t-xl font-bold text-xs sm:text-sm text-slate-600 hover:text-slate-900">
+          🎨 3. ปรับลด/จัดการรูปแบบสื่อ (<span id="masterCountMethods">0</span>)
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scrollbar flex-1 text-xs sm:text-sm">
+
+        <!-- TAB 1: AGENCIES -->
+        <div id="masterPanelAgencies" class="space-y-4">
+          <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 class="font-bold text-emerald-950">🏢 รายชื่อหน่วยงานภายในกรมควบคุมโรค</h4>
+              <p class="text-xs text-emerald-800">เพิ่มหน่วยงานใหม่ แก้ไขชื่อย่อ/ชื่อเต็ม หรือกดปุ่ม <strong>"ลบ/ปรับลด"</strong> เพื่อนำหน่วยงานที่ไม่ต้องการออกจากระบบ</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+              <input id="masterNewAgencyShort" type="text" placeholder="ชื่อย่อ (เช่น กตท.)" class="w-28 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+              <input id="masterNewAgencyName" type="text" placeholder="ชื่อหน่วยงานเต็ม (เช่น กองโรคติดต่อทั่วไป)" class="flex-1 sm:w-72 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+              <button onclick="addAgencyFromMaster()" class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold shrink-0">+ เพิ่ม</button>
+            </div>
+          </div>
+          <div id="masterAgencyList" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[52vh] overflow-y-auto pr-1 custom-scrollbar"></div>
+        </div>
+
+        <!-- TAB 2: CAMPAIGNS & MONTHLY OVERVIEWS -->
+        <div id="masterPanelCampaigns" class="hidden space-y-5">
+          <!-- Sub-section A: Weekly Campaign Items -->
+          <div class="space-y-3">
+            <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h4 class="font-bold text-amber-950">📌 ปรับลด / แก้ไข / เพิ่ม ประเด็นรณรงค์รายสัปดาห์ (W1–W5)</h4>
+                  <p class="text-xs text-amber-800">ติ๊กเลือกรายการเพื่อลบหลายประเด็นพร้อมกัน หรือแก้ไขชื่อ/เดือน/สัปดาห์/ลบรายประเด็นได้ทันที</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="bulkDeleteSelectedCampaigns()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-2xs">
+                    🗑️ ลบประเด็นที่เลือก
+                  </button>
+                </div>
+              </div>
+
+              <!-- Filter & Quick Add inside Settings -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <select id="masterCampaignMonthFilter" onchange="renderMasterCampaignsList()" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-medium">
+                  <option value="all">แสดงทุกเดือน (ม.ค. – ธ.ค.)</option>
+                </select>
+                <input id="masterCampaignSearch" type="text" oninput="renderMasterCampaignsList()" placeholder="ค้นหาประเด็นรณรงค์ที่ต้องการปรับลด/แก้ไข..." class="sm:col-span-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+              </div>
+
+              <!-- Quick Add Bar -->
+              <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200/70">
+                <span class="text-xs font-semibold text-amber-900">เพิ่มด่วน:</span>
+                <select id="masterQuickAddMonth" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"></select>
+                <select id="masterQuickAddWeek" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+                  <option value="W1">W1</option>
+                  <option value="W2">W2</option>
+                  <option value="W3">W3</option>
+                  <option value="W4">W4</option>
+                  <option value="W5">W5</option>
+                </select>
+                <input id="masterQuickAddTitle" type="text" placeholder="พิมพ์ชื่อประเด็นรณรงค์ใหม่..." class="flex-1 min-w-[200px] px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+                <button onclick="quickAddCampaignFromMaster()" class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">+ เพิ่มประเด็น</button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between px-2 text-xs text-slate-500">
+              <label class="inline-flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                <input type="checkbox" id="masterSelectAllCampaigns" onchange="toggleSelectAllMasterCampaigns(this.checked)" class="rounded text-emerald-600">
+                <span>เลือกทั้งหมดที่แสดงอยู่</span>
+              </label>
+              <span id="masterFilteredCampaignCount">แสดง 0 รายการ</span>
+            </div>
+
+            <div id="masterCampaignList" class="space-y-2 max-h-72 overflow-y-auto pr-1 custom-scrollbar"></div>
+          </div>
+
+          <!-- Sub-section B: Monthly Overview Bullets (Column 2) -->
+          <div class="border-t border-slate-200 pt-4 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h4 class="font-bold text-slate-800">🗓️ ปรับลด / แก้ไข หัวข้อ "ประเด็นหลักประจำเดือน (คอลัมน์ภาพรวม)"</h4>
+                <p class="text-xs text-slate-500">จัดการรายการหัวข้อภาพรวมประจำเดือนที่แสดงในคอลัมน์ที่ 2 ของตารางปฏิทิน</p>
+              </div>
+              <select id="masterOverviewMonthSelect" onchange="renderMasterOverviewList()" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold"></select>
+            </div>
+            <div class="flex gap-2">
+              <input id="masterNewOverviewText" type="text" placeholder="เพิ่มหัวข้อประเด็นหลักประจำเดือน..." class="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
+              <button onclick="addOverviewFromMaster()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">+ เพิ่มหัวข้อภาพรวม</button>
+            </div>
+            <div id="masterOverviewList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar"></div>
+          </div>
+        </div>
+
+        <!-- TAB 3: CAMPAIGN METHODS -->
+        <div id="masterPanelMethods" class="hidden space-y-4">
+          <div class="bg-teal-50/70 border border-teal-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 class="font-bold text-teal-950">🎨 วิธีการรณรงค์ / รูปแบบการผลิต Content</h4>
+              <p class="text-xs text-teal-800">เพิ่ม แก้ไขชื่อ หรือกดปุ่ม <strong>"ลบ/ปรับลด"</strong> รูปแบบการผลิตสื่อรณรงค์</p>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <input id="masterNewMethodName" type="text" placeholder="เช่น อินโฟกราฟิก, วิดีโอสั้น, Podcast" class="flex-1 sm:w-72 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+              <button onclick="addMethodFromMaster()" class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold shrink-0">+ เพิ่ม</button>
+            </div>
+          </div>
+          <div id="masterMethodList" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[52vh] overflow-y-auto pr-1 custom-scrollbar"></div>
+        </div>
+
+      </div>
+
+      <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <button onclick="openMasterTabCampaignsQuick()" class="text-xs text-emerald-700 hover:underline font-semibold">สลับไปหน้าปรับลดประเด็นรณรงค์ →</button>
+        <button onclick="closeMasterModal()" class="px-5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-semibold">เสร็จสิ้น</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: RESET CONFIRMATION -->
+  <div id="resetConfirmModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800">ยืนยันการรีเซ็ตข้อมูลเริ่มต้น</h3>
+          <p class="text-xs text-slate-500">ข้อมูลที่คุณแก้ไขเพิ่มเติมจะถูกคืนค่ากลับเป็นตารางประเด็นหลักตามปฏิทินตั้งต้น</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeResetConfirmModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50">ยกเลิก</button>
+        <button onclick="confirmResetData()" class="px-4 py-2 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-500">ยืนยันรีเซ็ตข้อมูล</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastBox" class="fixed bottom-4 right-4 z-50 hidden bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg border border-slate-700 text-xs sm:text-sm flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+    <span id="toastText">บันทึกข้อมูลเรียบร้อยแล้ว</span>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. MASTER DATA: MONTHS, DDC AGENCIES, CAMPAIGN METHODS
+    // ==========================================
+    const MONTHS = [
+      { id: 1, name: "มกราคม", short: "ม.ค.", season: "ฤดูหนาว", overview: ["ฝุ่นละอองขนาดเล็ก PM 2.5", "โรคมือ เท้า ปาก (ช่วงวันเด็ก)", "อาหารเป็นพิษหลังเทศกาลปีใหม่", "โรคไอกรน (Pertussis) ระบาดหนักใน 3 จังหวัดชายแดนใต้ เร่งฉีดวัคซีนหญิงตั้งครรภ์และเด็กเล็ก", "เฝ้าระวังโควิด 19", "โรคหัด (Measles) พุ่งสูง เกาะติดรายสัปดาห์ เร่งรัดวัคซีน MMR ในเด็กเล็ก", "ประชาสัมพันธ์การปรับตารางวัคซีนพื้นฐาน (EPI) ปี 70"] },
+      { id: 2, name: "กุมภาพันธ์", short: "ก.พ.", season: "ฤดูหนาว-ร้อน", overview: ["วันมะเร็งโลก (4 ก.พ.)", "วันวาเลนไทน์ (โรคติดต่อทางเพศสัมพันธ์)", "ตรุษจีน (ควันธูป / อาหารไหว้ / ประทัด)", "ไวรัสโนโร (Norovirus) & โรต้า อาหารเป็นพิษและอุจจาระร่วงเฉียบพลันในค่ายกิจกรรมและโรงเรียน", "ฝีดาษวานร (Mpox)", "ย้ำเตือนซิฟิลิสและ Mpox ในกลุ่มเยาวชน"] },
+      { id: 3, name: "มีนาคม", short: "มี.ค.", season: "ฤดูร้อน", overview: ["ประกาศเตือนโรคฤดูร้อน", "วันโรคอ้วนโลก / วันไตโลก", "วันวัณโรคโลก (24 มี.ค.)", "โรคแอนแทรกซ์ (Anthrax)", "คัดกรองวัณโรคในกลุ่มเสี่ยงเชิงรุก", "โรคลมแดด (Heat Stroke) เร็วและแรง เน้นกลุ่มคนทำงานกลางแจ้ง ทหารเกณฑ์ และผู้สูงอายุ", "รณรงค์ลดเค็ม-ลดโรคไต ควบคู่คัดกรอง NCDs"] },
+      { id: 4, name: "เมษายน", short: "เม.ย.", season: "ฤดูร้อน", overview: ["สงกรานต์ (ขับไม่ดื่ม ดื่มไม่ขับ)", "โรคลมแดด (Heat Stroke)", "วันมาลาเรียโลก", "โควิด 19 พุ่งสูงหลังสงกรานต์", "โรคหัด พาเด็กไปรับวัคซีนเก็บตก", "ภัยสุขภาพหลังเล่นน้ำสงกรานต์ เน้นเตือนโรคเมลิออยโดสิส (ไข้ดิน) จากการสำลักน้ำสกปรก และโรคตาแดง"] },
+      { id: 5, name: "พฤษภาคม", short: "พ.ค.", season: "ต้นฤดูฝน", overview: ["เตรียมพร้อมรับเปิดเทอม (มือเท้าปาก)", "ภัยจากเห็ดพิษ (ต้นฤดูฝน)", "วันความดันโลหิตสูง / วันงดสูบบุหรี่โลก", "ประกาศเตือนโรคฤดูฝน", "ปราบบุหรี่ไฟฟ้า \"Toy Pod\" เน้นสื่อสารเตือนภัยบุหรี่ไฟฟ้ารูปแบบการ์ตูน/กล่องนมในกลุ่มนักเรียนช่วงเปิดเทอม", "เฝ้าระวังโรคเมอร์ส (MERS) ในกลุ่มผู้เดินทางกลับจากพิธีฮัจญ์ (ตะวันออกกลาง)", "ภาวะปอดอักเสบรุนแรงจากบุหรี่ไฟฟ้า (EVALI) ยกระดับเนื้อหาสื่อให้เห็นผลกระทบทางคลินิกที่รุนแรงในเยาวชน"] },
+      { id: 6, name: "มิถุนายน", short: "มิ.ย.", season: "ฤดูฝน", overview: ["วันไข้เลือดออกอาเซียน (15 มิ.ย.)", "มาตรการ \"3 เก็บ ป้องกัน 3 โรค\"", "โรคไข้หูดับ (กินหมูดิบ)", "โควิด 19 ระลอกฤดูฝน", "เน้นย้ำ \"ห้ามซื้อยากินเอง\" (NSAIDs) ห้ามกินยาไอบูโพรเฟน/แอสไพรินเมื่อมีไข้สูง เสี่ยงเลือดออกช็อกเสียชีวิตจากไข้เลือดออก"] },
+      { id: 7, name: "กรกฎาคม", short: "ก.ค.", season: "ฤดูฝน", overview: ["วันงดดื่มสุราแห่งชาติ (เข้าพรรษา)", "ป้องกันการจมน้ำในเด็ก (ตะโกน โยน ยื่น)", "วันตับอักเสบโลก (28 ก.ค.)", "โรคติดเชื้อไวรัส SFTS (พาหะจากเห็บ)", "โรคฉี่หนู (Leptospirosis) & ไข้ดิน เน้นหนักในกลุ่มเกษตรกรช่วงเริ่มทำนาและพื้นที่น้ำขัง ย้ำการสวมรองเท้าบูตยาง"] },
+      { id: 8, name: "สิงหาคม", short: "ส.ค.", season: "กลางฤดูฝน", overview: ["ไข้หวัดใหญ่ & RSV พีคกลางฤดูฝน", "วันยุงโลก (20 ส.ค.)", "มะเร็งปากมดลูก (HPV)", "ฝีดาษวานรสายพันธุ์ใหม่ (Mpox)", "โรคไข้หวัดนก (H5N1) ออกประกาศเตือนและเฝ้าระวังเข้มข้นช่วงกลางเดือน ส.ค.", "โปลิโอสายพันธุ์กลายพันธุ์ (cVDPV1)"] },
+      { id: 9, name: "กันยายน", short: "ก.ย.", season: "ปลายฤดูฝน", overview: ["ภัยสุขภาพจากน้ำท่วม (ไฟดูด/สัตว์มีพิษ)", "โรคตาแดง / น้ำกัดเท้า", "วันพิษสุนัขบ้าโลก / วันหัวใจโลก", "วิกฤตมหาอุทกภัยและดินโคลนถล่ม การเอาชีวิตรอดจากน้ำท่วม ไฟดูด", "ติดตามสถานการณ์โรคหัดเร่งรัดวัคซีน", "เน้นเข้ม \"มือ เท้า ปาก\" และ \"ไข้ฉี่หนู\" ปลายฝน เตือนสถานศึกษาคัดกรองเข้มข้น"] },
+      { id: 10, name: "ตุลาคม", short: "ต.ค.", season: "ปลายฝนต้นหนาว", overview: ["วันผู้สูงอายุสากล (พลัดตกหกล้ม)", "เทศกาลกินเจ", "วันโปลิโอโลก / วันอัมพาตโลก", "เตรียมรับมือโรคฤดูหนาว", "โรคหลังน้ำลด (ไข้ดิน/ฉี่หนู) เตือนประชาชนที่ลุยโคลนล้างบ้านหลังน้ำท่วมใหญ่", "รณรงค์วัคซีนไข้หวัดใหญ่และ RSV ช่วงเปลี่ยนฤดู", "เฝ้าระวังโรคโปลิโอปลายเดือน", "อาการรุนแรงของมือ เท้า ปาก รณรงค์ Car Seat"] },
+      { id: 11, name: "พฤศจิกายน", short: "พ.ย.", season: "ต้นฤดูหนาว", overview: ["เทศกาลลอยกระทง (ป้องกันจมน้ำ/ประทัด)", "วันปอดอักเสบโลก / วันเบาหวานโลก", "ประกาศเตือนโรคฤดูหนาว", "ไอกรนระบาดในโรงเรียน", "เน้นเฝ้าระวังปอดอักเสบ IPD/RSV", "รณรงค์ลดหวานมันเค็ม (วันเบาหวานโลก)"] },
+      { id: 12, name: "ธันวาคม", short: "ธ.ค.", season: "ฤดูหนาว", overview: ["วันเอดส์โลก (1 ธ.ค.)", "ภัยท่องเที่ยวหน้าหนาว (สครับไทฟัส / เครื่องทำน้ำอุ่นระบบแก๊ส / ดื่มเหล้าแก้หนาว)", "ปีใหม่ (ขับไม่ดื่ม ดื่มไม่ขับ)", "พิษสุราปลอม/ซุ้มยาดอง & ดื่มเหล้าแก้หนาว ย้ำเตือนอันตรายจากการดื่มสุราหนักช่วงอากาศหนาวเย็น", "ภัยสุขภาพเสื้อกันหนาวมือสอง", "เตือนภัยสุขภาพนักท่องเที่ยวหน้าหนาว และแคมเปญลดอุบัติเหตุเทศกาลปีใหม่ 2570"] }
+    ];
+
+    const DEFAULT_AGENCIES = [
+      { id: "brc", name: "สำนักสื่อสารความเสี่ยงและพัฒนาพฤติกรรมสุขภาพ", short: "สสพ.", color: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+      { id: "dcd", name: "กองโรคติดต่อทั่วไป", short: "กตท.", color: "bg-blue-100 text-blue-800 border-blue-300" },
+      { id: "dvb", name: "กองโรคติดต่อนำโดยแมลง", short: "กมล.", color: "bg-lime-100 text-lime-800 border-lime-300" },
+      { id: "dncd", name: "กองโรคไม่ติดต่อ", short: "กมต.", color: "bg-amber-100 text-amber-800 border-amber-300" },
+      { id: "das", name: "กองโรคเอดส์และโรคติดต่อทางเพศสัมพันธ์", short: "กอพ.", color: "bg-pink-100 text-pink-800 border-pink-300" },
+      { id: "dip", name: "กองป้องกันการบาดเจ็บ", short: "กปบ.", color: "bg-orange-100 text-orange-800 border-orange-300" },
+      { id: "doed", name: "กองโรคจากการประกอบอาชีพและสิ่งแวดล้อม", short: "กอช.", color: "bg-cyan-100 text-cyan-800 border-cyan-300" },
+      { id: "dtb", name: "กองวัณโรค", short: "กวร.", color: "bg-indigo-100 text-indigo-800 border-indigo-300" },
+      { id: "otpc", name: "กองงานคณะกรรมการควบคุมผลิตภัณฑ์ยาสูบ", short: "กคส.", color: "bg-rose-100 text-rose-800 border-rose-300" },
+      { id: "oacc", name: "สำนักงานคณะกรรมการควบคุมเครื่องดื่มแอลกอฮอล์", short: "สคอ.", color: "bg-purple-100 text-purple-800 border-purple-300" },
+      { id: "doe", name: "กองระบาดวิทยา", short: "กรว.", color: "bg-violet-100 text-violet-800 border-violet-300" },
+      { id: "ddce", name: "กองควบคุมโรคและภัยสุขภาพในภาวะฉุกเฉิน", short: "กฉ.", color: "bg-red-100 text-red-800 border-red-300" },
+      { id: "idcp", name: "กองด่านควบคุมโรคติดต่อระหว่างประเทศและกักกันโรค", short: "กดร.", color: "bg-teal-100 text-teal-800 border-teal-300" },
+      { id: "odpc", name: "สำนักงานป้องกันควบคุมโรคที่ 1–12 และ สปคม.", short: "สคร.1-12/สปคม.", color: "bg-slate-200 text-slate-800 border-slate-300" }
+    ];
+
+    const DEFAULT_METHODS = [
+      { id: "info", name: "อินโฟกราฟิก (Infographic)", short: "อินโฟกราฟิก", icon: "📊", badgeClass: "bg-teal-50 text-teal-700 border-teal-200" },
+      { id: "shortvideo", name: "วิดีโอสั้น (Reels / TikTok / Shorts)", short: "วิดีโอสั้น", icon: "📱", badgeClass: "bg-rose-50 text-rose-700 border-rose-200" },
+      { id: "press", name: "ข่าวแจก / แถลงข่าว (Press Release)", short: "ข่าวแจก", icon: "📰", badgeClass: "bg-blue-50 text-blue-700 border-blue-200" },
+      { id: "social", name: "โพสต์สั้น / Quote Card โซเชียล", short: "โพสต์โซเชียล", icon: "💬", badgeClass: "bg-amber-50 text-amber-700 border-amber-200" },
+      { id: "motion", name: "คลิปความรู้ / Motion Graphic", short: "คลิปความรู้", icon: "🎥", badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+      { id: "spot", name: "สปอตเสียง / วิทยุชุมชน (Audio Spot)", short: "สปอตเสียง", icon: "🎙️", badgeClass: "bg-purple-50 text-purple-700 border-purple-200" },
+      { id: "live", name: "Facebook Live / เสวนาออนไลน์", short: "Live เสวนา", icon: "📡", badgeClass: "bg-red-50 text-red-700 border-red-200" },
+      { id: "article", name: "บทความ / คู่มือประชาชน", short: "บทความ/คู่มือ", icon: "📄", badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200" }
+    ];
+
+    const DEFAULT_CAMPAIGNS = [
+      // มกราคม
+      { id: "m1_1", month: 1, week: "W1", title: "อาหารเป็นพิษหลังเทศกาลปีใหม่", agencies: ["dcd", "brc"], methods: ["info", "social"], status: "published", target: "ประชาชนทั่วไป / นักเดินทาง", note: "เน้นย้ำ กินร้อน ช้อนกลาง ล้างมือ" },
+      { id: "m1_2", month: 1, week: "W1", title: "เฝ้าระวังโควิด 19 หลังเทศกาลปีใหม่", agencies: ["dcd", "doe", "brc"], methods: ["info", "press"], status: "published", target: "ประชาชนทั่วไป / กลุ่มเสี่ยง 608", note: "เกาะติดสถานการณ์รายสัปดาห์" },
+      { id: "m1_3", month: 1, week: "W2", title: "โรคมือ เท้า ปาก (ช่วงวันเด็กแห่งชาติ)", agencies: ["dcd", "brc"], methods: ["info", "shortvideo"], status: "published", target: "ผู้ปกครอง / ศูนย์เด็กเล็ก / โรงเรียนอนุบาล", note: "คัดกรองเด็กก่อนเข้าเรียนและสถานที่จัดงานวันเด็ก" },
+      { id: "m1_4", month: 1, week: "W2", title: "ประชาสัมพันธ์การปรับตารางวัคซีนพื้นฐาน (EPI) ปี 70", agencies: ["dcd", "brc"], methods: ["info", "article", "social"], status: "published", target: "ผู้ปกครองเด็กเล็ก / บุคลากรสาธารณสุข", note: "ตารางวัคซีน EPI ใหม่" },
+      { id: "m1_5", month: 1, week: "W2", title: "โรคไอกรน (Pertussis) ระบาดหนักใน 3 จังหวัดชายแดนใต้ เร่งฉีดวัคซีนหญิงตั้งครรภ์และเด็กเล็ก", agencies: ["dcd", "odpc", "brc"], methods: ["info", "shortvideo", "spot"], status: "published", target: "หญิงตั้งครรภ์และเด็กเล็กในพื้นที่ 3 จังหวัดชายแดนใต้ (สคร.12)", note: "สื่อสารหลายภาษาร่วมกับพื้นที่" },
+      { id: "m1_6", month: 1, week: "W3", title: "โรคหัด (Measles) พุ่งสูง เกาะติดรายสัปดาห์ เร่งรัดวัคซีน MMR ในเด็กเล็ก", agencies: ["dcd", "doe", "brc"], methods: ["info", "press", "shortvideo"], status: "published", target: "ผู้ปกครองเด็กเล็กอายุ 9 เดือน - 5 ปี", note: "เร่งรัดความครอบคลุมวัคซีน MMR" },
+      { id: "m1_7", month: 1, week: "W4", title: "ฝุ่นละอองขนาดเล็ก PM 2.5 และการป้องกันผลกระทบต่อสุขภาพ", agencies: ["doed", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "ประชาชนทั่วไป / กลุ่มเสี่ยง / ผู้ทำงานกลางแจ้ง", note: "เช็กค่าฝุ่น สวมหน้ากาก N95" },
+
+      // กุมภาพันธ์
+      { id: "m2_1", month: 2, week: "W1", title: "วันมะเร็งโลก (4 ก.พ.)", agencies: ["dncd", "brc"], methods: ["info", "shortvideo", "article"], status: "published", target: "ประชาชนทั่วไป", note: "ลดพฤติกรรมเสี่ยง คัดกรองมะเร็งระยะเริ่มต้น" },
+      { id: "m2_2", month: 2, week: "W1", title: "ตรุษจีนปลอดภัย (ควันธูป / อาหารไหว้ / ประทัด)", agencies: ["doed", "dip", "dcd", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "ประชาชนเชื้อสายจีน / ครอบครัว", note: "ลดควันธูป ระวังอาหารค้างคืน และอันตรายจากประทัด" },
+      { id: "m2_3", month: 2, week: "W2", title: "วันวาเลนไทน์ (การป้องกันโรคติดต่อทางเพศสัมพันธ์)", agencies: ["das", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "เยาวชน / วัยรุ่น / คู่รัก", note: "รักปลอดภัย พกถุงยางอนามัยและตรวจคัดกรอง" },
+      { id: "m2_4", month: 2, week: "W3", title: "ไวรัสโนโร (Norovirus) & โรต้า อาหารเป็นพิษและอุจจาระร่วงเฉียบพลันในค่ายกิจกรรมและโรงเรียน", agencies: ["dcd", "doe", "brc"], methods: ["info", "press", "shortvideo"], status: "published", target: "โรงเรียน / ค่ายลูกเสือ / ผู้ประกอบการอาหาร", note: "ย้ำการล้างมือด้วยสบู่ แอลกอฮอล์ฆ่าเชื้อโนโรไม่ได้" },
+      { id: "m2_5", month: 2, week: "W4", title: "ย้ำเตือนซิฟิลิสและฝีดาษวานร (Mpox) ในกลุ่มเยาวชน", agencies: ["das", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "เยาวชน / นักเรียน / นักศึกษา", note: "สังเกตตุ่มผื่นและคัดกรองโรคติดต่อทางเพศสัมพันธ์" },
+
+      // มีนาคม
+      { id: "m3_1", month: 3, week: "W1", title: "วันโรคอ้วนโลก (World Obesity Day)", agencies: ["dncd", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "ประชาชนทุกกลุ่มวัย / วัยทำงาน", note: "ปรับพฤติกรรมโภชนาการและกิจกรรมทางกาย" },
+      { id: "m3_2", month: 3, week: "W2", title: "วันไตโลก & รณรงค์ลดเค็ม-ลดโรคไต ควบคู่คัดกรอง NCDs", agencies: ["dncd", "brc"], methods: ["info", "shortvideo", "live"], status: "published", target: "ผู้ป่วย NCDs / ผู้บริโภคทั่วไป", note: "ลดโซเดียม อ่านฉลากโภชนาการ" },
+      { id: "m3_3", month: 3, week: "W2", title: "คัดกรองวัณโรคในกลุ่มเสี่ยงเชิงรุก", agencies: ["dtb", "odpc", "brc"], methods: ["info", "article", "spot"], status: "published", target: "ผู้สัมผัสโรคร่วมบ้าน / ผู้สูงอายุ / กลุ่มเสี่ยง", note: "เอกซเรย์ปอดเชิงรุก รู้เร็ว รักษาหาย" },
+      { id: "m3_4", month: 3, week: "W3", title: "วันวัณโรคโลก (24 มี.ค.)", agencies: ["dtb", "brc"], methods: ["info", "shortvideo", "press", "live"], status: "published", target: "ประชาชนทั่วไป / กลุ่มเสี่ยงวัณโรค", note: "ยุติวัณโรค (End TB) ไอเรื้อรังเกิน 2 สัปดาห์รีบพบแพทย์" },
+      { id: "m3_5", month: 3, week: "W3", title: "ประกาศเตือนโรคและภัยสุขภาพฤดูร้อน", agencies: ["dcd", "doe", "brc"], methods: ["press", "info", "social"], status: "published", target: "ประชาชนทั่วไป", note: "โรคติดต่อทางอาหารและน้ำ โรคพิษสุนัขบ้า ลมแดด" },
+      { id: "m3_6", month: 3, week: "W4", title: "เฝ้าระวังโรคแอนแทรกซ์ (Anthrax)", agencies: ["dcd", "doe", "brc"], methods: ["info", "press"], status: "published", target: "เกษตรกรผู้เลี้ยงสัตว์ / ผู้บริโภคเนื้อสัตว์", note: "ห้ามชำแหละหรือบริโภคเนื้อสัตว์ป่วยตายผิดปกติ" },
+      { id: "m3_7", month: 3, week: "W5", title: "โรคลมแดด (Heat Stroke) เร็วและแรง เน้นกลุ่มคนทำงานกลางแจ้ง ทหารเกณฑ์ และผู้สูงอายุ", agencies: ["doed", "dip", "brc"], methods: ["info", "shortvideo", "spot"], status: "published", target: "คนทำงานกลางแจ้ง / ทหารเกณฑ์ / ผู้สูงอายุ", note: "ดื่มน้ำบ่อยๆ สังเกตอาการตัวร้อนจัดไม่มีเหงื่อ" },
+
+      // เมษายน
+      { id: "m4_1", month: 4, week: "W1", title: "โรคลมแดด (Heat Stroke) ช่วงอากาศร้อนจัดเดือนเมษายน", agencies: ["doed", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "ประชาชนทั่วไป / ผู้สูงอายุ / ผู้ทำงานกลางแจ้ง", note: "การปฐมพยาบาลเบื้องต้นผู้ป่วย Heat Stroke" },
+      { id: "m4_2", month: 4, week: "W2", title: "สงกรานต์ปลอดภัย (ขับไม่ดื่ม ดื่มไม่ขับ)", agencies: ["dip", "oacc", "brc"], methods: ["info", "shortvideo", "spot", "press"], status: "published", target: "ผู้ขับขี่ยานพาหนะ / นักเดินทางช่วงสงกรานต์", note: "ลดอุบัติเหตุทางถนนช่วง 7 วันอันตราย" },
+      { id: "m4_3", month: 4, week: "W2", title: "ภัยสุขภาพหลังเล่นน้ำสงกรานต์ เตือนโรคเมลิออยโดสิส (ไข้ดิน) จากการสำลักน้ำสกปรก และโรคตาแดง", agencies: ["dcd", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "ผู้เล่นน้ำสงกรานต์ / ประชาชนทั่วไป", note: "สังเกตอาการมีไข้หลังสงกรานต์และล้างมือทำความสะอาดร่างกาย" },
+      { id: "m4_4", month: 4, week: "W3", title: "วันมาลาเรียโลก (World Malaria Day)", agencies: ["dvb", "brc"], methods: ["info", "article", "social"], status: "published", target: "ประชาชนพื้นที่ชายแดน-ป่าเขา / นักท่องเที่ยวธรรมชาติ", note: "ป้องกันยุงก้นปล่องกัด" },
+      { id: "m4_5", month: 4, week: "W3", title: "เฝ้าระวังโควิด 19 พุ่งสูงหลังสงกรานต์", agencies: ["dcd", "doe", "brc"], methods: ["info", "press", "social"], status: "published", target: "ประชาชนที่เดินทางกลับจากภูมิลำเนา / กลุ่ม 608", note: "สังเกตอาการตนเอง 7 วันหลังเดินทาง" },
+      { id: "m4_6", month: 4, week: "W4", title: "โรคหัด พาเด็กไปรับวัคซีนเก็บตกก่อนเปิดเทอม", agencies: ["dcd", "brc"], methods: ["info", "shortvideo", "spot"], status: "published", target: "ผู้ปกครองเด็กเล็ก", note: "ตรวจสอบสมุดวัคซีนเด็กเล็กให้ครบตามเกณฑ์" },
+
+      // พฤษภาคม
+      { id: "m5_1", month: 5, week: "W1", title: "เตรียมพร้อมรับเปิดเทอม (ป้องกันโรคมือ เท้า ปาก)", agencies: ["dcd", "brc"], methods: ["info", "shortvideo", "article"], status: "published", target: "สถานศึกษา / ครูผู้ดูแลเด็ก / ผู้ปกครอง", note: "แนวทางคัดกรองเด็กป่วยและการทำความสะอาดห้องเรียน" },
+      { id: "m5_2", month: 5, week: "W2", title: "ปราบบุหรี่ไฟฟ้า \"Toy Pod\" เน้นสื่อสารเตือนภัยบุหรี่ไฟฟ้ารูปแบบการ์ตูน/กล่องนมในกลุ่มนักเรียนช่วงเปิดเทอม", agencies: ["otpc", "brc"], methods: ["info", "shortvideo", "social", "press"], status: "published", target: "นักเรียน / ผู้ปกครอง / ครูอาจารย์", note: "รู้เท่าทันจุดสังเกตบุหรี่ไฟฟ้าแฝงรูปของเล่น" },
+      { id: "m5_3", month: 5, week: "W2", title: "เฝ้าระวังโรคเมอร์ส (MERS) ในกลุ่มผู้เดินทางกลับจากพิธีฮัจญ์ (ตะวันออกกลาง)", agencies: ["idcp", "dcd", "doe", "brc"], methods: ["info", "press", "article"], status: "published", target: "ผู้แสวงบุญพิธีฮัจญ์และครอบครัว", note: "การเฝ้าระวังอาการไข้ ไอ หอบเหนื่อย 14 วันหลังเดินทางกลับ" },
+      { id: "m5_4", month: 5, week: "W3", title: "ประกาศเตือนโรคและภัยสุขภาพฤดูฝน", agencies: ["dcd", "dvb", "doe", "brc"], methods: ["press", "info", "shortvideo"], status: "published", target: "ประชาชนทั่วไป", note: "กลุ่มโรคระบบทางเดินหายใจ โรคติดต่อนำโดยยุงลาย โรคฉี่หนู" },
+      { id: "m5_5", month: 5, week: "W3", title: "ภาวะปอดอักเสบรุนแรงจากบุหรี่ไฟฟ้า (EVALI) ยกระดับเนื้อหาสื่อให้เห็นผลกระทบทางคลินิกที่รุนแรงในเยาวชน", agencies: ["otpc", "brc"], methods: ["shortvideo", "motion", "info"], status: "published", target: "เยาวชน / วัยรุ่น / นักเรียนนักศึกษา", note: "สื่อสารเคสจริงและอันตรายต่อปอดเฉียบพลัน" },
+      { id: "m5_6", month: 5, week: "W3", title: "วันความดันโลหิตสูงโลก (17 พ.ค.)", agencies: ["dncd", "brc"], methods: ["info", "social", "live"], status: "published", target: "ประชาชนวัยทำงานและผู้สูงอายุ", note: "วัดความดันโลหิตสม่ำเสมอ รู้ค่าความดัน ลดเสี่ยงโรคหลอดเลือดสมอง" },
+      { id: "m5_7", month: 5, week: "W4", title: "ภัยจากเห็ดพิษ (ช่วงต้นฤดูฝน)", agencies: ["doe", "dcd", "brc"], methods: ["info", "shortvideo", "spot"], status: "published", target: "ประชาชนในพื้นที่ชนบท / ผู้หาของป่า", note: "เห็ดไม่รู้จัก ไม่แน่ใจ ห้ามเก็บ ห้ามกิน" },
+      { id: "m5_8", month: 5, week: "W4", title: "วันงดสูบบุหรี่โลก (31 พ.ค.)", agencies: ["otpc", "brc"], methods: ["info", "shortvideo", "press", "live"], status: "published", target: "ประชาชนทั่วไป / เยาวชน / ผู้สูบบุหรี่", note: "รณรงค์ลด ละ เลิกบุหรี่และบุหรี่ไฟฟ้า" },
+
+      // มิถุนายน
+      { id: "m6_1", month: 6, week: "W1", title: "มาตรการ \"3 เก็บ ป้องกัน 3 โรค\" (เก็บบ้าน เก็บขยะ เก็บน้ำ)", agencies: ["dvb", "odpc", "brc"], methods: ["info", "shortvideo", "spot"], status: "published", target: "ชุมชน / ครัวเรือน / อปท.", note: "ป้องกันไข้เลือดออก ไข้ปวดข้อยุงลาย และไวรัสซิกา" },
+      { id: "m6_2", month: 6, week: "W2", title: "วันไข้เลือดออกอาเซียน (15 มิ.ย. ASEAN Dengue Day)", agencies: ["dvb", "brc"], methods: ["info", "shortvideo", "press", "live"], status: "published", target: "ประชาชนทั่วไป / ภาคีเครือข่าย", note: "แคมเปญใหญ่กำจัดแหล่งเพาะพันธุ์ยุงลาย" },
+      { id: "m6_3", month: 6, week: "W3", title: "เน้นย้ำ \"ห้ามซื้อยากินเอง\" (NSAIDs) ห้ามกินยาไอบูโพรเฟน/แอสไพรินเมื่อมีไข้สูง เสี่ยงเลือดออกช็อกเสียชีวิตจากไข้เลือดออก", agencies: ["dvb", "dcd", "brc"], methods: ["info", "shortvideo", "social", "spot"], status: "published", target: "ประชาชนทั่วไป / ร้านขายยา / ผู้ปกครอง", note: "มีไข้สูงให้เช็ดตัวและใช้พาราเซตามอลเท่านั้น" },
+      { id: "m6_4", month: 6, week: "W4", title: "โควิด 19 ระลอกฤดูฝน", agencies: ["dcd", "doe", "brc"], methods: ["info", "press", "social"], status: "published", target: "ประชาชนทั่วไป / กลุ่ม 608 / โรงเรียน", note: "ป้องกันการแพร่ระบาดในพื้นที่ปิดและสถานศึกษา" },
+      { id: "m6_5", month: 6, week: "W5", title: "โรคไข้หูดับ (อันตรายจากการกินหมูดิบ / ลาบเลือดดิบ)", agencies: ["dcd", "odpc", "brc"], methods: ["info", "shortvideo", "spot"], status: "published", target: "ประชาชนในพื้นที่ภาคเหนือและอีสาน / ผู้บริโภคเนื้อหมู", note: "กินหมูสุก ร้อน สะอาด ป้องกันหูหนวกถาวรและเสียชีวิต" },
+
+      // กรกฎาคม
+      { id: "m7_1", month: 7, week: "W1", title: "ป้องกันการจมน้ำในเด็ก (ตะโกน โยน ยื่น)", agencies: ["dip", "brc"], methods: ["info", "shortvideo", "motion"], status: "published", target: "เด็กวัยเรียน / ผู้ปกครอง / ชุมชน", note: "ทักษะเอาชีวิตรอดและการช่วยเหลือคนตกน้ำอย่างถูกวิธี" },
+      { id: "m7_2", month: 7, week: "W2", title: "โรคติดเชื้อไวรัส SFTS (พาหะจากเห็บ)", agencies: ["dvb", "doe", "brc"], methods: ["info", "press", "article"], status: "published", target: "เกษตรกร / ผู้เลี้ยงสัตว์ / ผู้เดินป่า", note: "ระวังเห็บกัด สังเกตอาการไข้สูง เกล็ดเลือดต่ำ" },
+      { id: "m7_3", month: 7, week: "W3", title: "โรคฉี่หนู (Leptospirosis) & ไข้ดิน เน้นหนักในกลุ่มเกษตรกรช่วงเริ่มทำนาและพื้นที่น้ำขัง ย้ำการสวมรองเท้าบูตยาง", agencies: ["dcd", "odpc", "brc"], methods: ["info", "shortvideo", "spot"], status: "published", target: "เกษตรกรชาวนา / ผู้ลุยน้ำย่ำโคลน", note: "สวมรองเท้าบูตยาง ล้างเท้าฟอกสบู่หลังลุยน้ำทันที" },
+      { id: "m7_4", month: 7, week: "W3", title: "วันงดดื่มสุราแห่งชาติ (ช่วงเทศกาลเข้าพรรษา)", agencies: ["oacc", "brc"], methods: ["info", "shortvideo", "press", "social"], status: "published", target: "ประชาชนทั่วไป / ผู้ดื่มสุรา", note: "งดเหล้าเข้าพรรษา พักตับ ฟื้นฟูสุขภาพ" },
+      { id: "m7_5", month: 7, week: "W4", title: "วันตับอักเสบโลก (28 ก.ค. World Hepatitis Day)", agencies: ["das", "dcd", "brc"], methods: ["info", "shortvideo", "live"], status: "published", target: "ประชาชนทั่วไป / ผู้เกิดก่อนปี 2535", note: "ตรวจคัดกรองไวรัสตับอักเสบบีและซี ป้องกันตับแข็งและมะเร็งตับ" },
+
+      // สิงหาคม
+      { id: "m8_1", month: 8, week: "W1", title: "เฝ้าระวังโรคฝีดาษวานรสายพันธุ์ใหม่ (Mpox)", agencies: ["das", "doe", "idcp", "brc"], methods: ["info", "press", "social"], status: "published", target: "ประชาชนทั่วไป / นักเดินทางระหว่างประเทศ", note: "อัปเดตสถานการณ์และการป้องกันการสัมผัสใกล้ชิด" },
+      { id: "m8_2", month: 8, week: "W2", title: "ไข้หวัดใหญ่ & RSV พีคกลางฤดูฝน", agencies: ["dcd", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "เด็กเล็ก / ผู้สูงอายุ / สถานศึกษา", note: "สังเกตอาการหอบเหนื่อยในเด็กเล็ก และสวมหน้ากากเมื่อป่วย" },
+      { id: "m8_3", month: 8, week: "W3", title: "โรคไข้หวัดนก (H5N1) ออกประกาศเตือนและเฝ้าระวังเข้มข้นช่วงกลางเดือน ส.ค.", agencies: ["dcd", "doe", "brc"], methods: ["press", "info", "spot"], status: "published", target: "เกษตรกรผู้เลี้ยงสัตว์ปีก / ประชาชนชายแดน", note: "ห้ามสัมผัสสัตว์ปีกป่วยตาย แจ้งเจ้าหน้าที่ทันที" },
+      { id: "m8_4", month: 8, week: "W3", title: "วันยุงโลก (20 ส.ค. World Mosquito Day)", agencies: ["dvb", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "ประชาชนทั่วไป", note: "ทายากันยุง กำจัดลูกน้ำยุงลายต่อเนื่อง" },
+      { id: "m8_5", month: 8, week: "W4", title: "รณรงค์ป้องกันมะเร็งปากมดลูกและฉีดวัคซีน HPV", agencies: ["dcd", "dncd", "brc"], methods: ["info", "shortvideo", "article"], status: "published", target: "หญิงไทย / นักเรียนหญิงชั้น ป.5", note: "ฉีดวัคซีน HPV และตรวจคัดกรองมะเร็งปากมดลูก" },
+      { id: "m8_6", month: 8, week: "W4", title: "เฝ้าระวังโรคโปลิโอสายพันธุ์กลายพันธุ์ (cVDPV1)", agencies: ["dcd", "doe", "brc"], methods: ["info", "press"], status: "published", target: "ผู้ปกครองเด็กเล็กพื้นที่เสี่ยงและชายแดน", note: "เร่งรัดการรับวัคซีนโปลิโอครบตามเกณฑ์" },
+
+      // กันยายน
+      { id: "m9_1", month: 9, week: "W1", title: "เน้นเข้ม \"มือ เท้า ปาก\" และ \"ไข้ฉี่หนู\" ปลายฝน เตือนสถานศึกษาคัดกรองเข้มข้น", agencies: ["dcd", "odpc", "brc"], methods: ["info", "shortvideo", "press"], status: "published", target: "สถานศึกษา / ผู้ปกครอง / ประชาชนพื้นที่น้ำขัง", note: "คัดกรองเด็กป่วยและระวังน้ำท่วมขัง" },
+      { id: "m9_2", month: 9, week: "W2", title: "ติดตามสถานการณ์โรคหัด เร่งรัดวัคซีนในเด็กเล็ก", agencies: ["dcd", "doe", "brc"], methods: ["info", "social", "spot"], status: "published", target: "ผู้ปกครองเด็กเล็ก", note: "ติดตามพื้นที่ความครอบคลุมวัคซีนต่ำ" },
+      { id: "m9_3", month: 9, week: "W2", title: "วิกฤตมหาอุทกภัยและดินโคลนถล่ม การเอาชีวิตรอดจากน้ำท่วมและไฟดูด", agencies: ["ddce", "dip", "brc"], methods: ["info", "shortvideo", "press", "spot"], status: "published", target: "ประชาชนในพื้นที่ประสบอุทกภัย", note: "ตัดคัตเอาต์ไฟ ย้ายของขึ้นที่สูง แนวทางอพยพปลอดภัย" },
+      { id: "m9_4", month: 9, week: "W3", title: "ภัยสุขภาพจากน้ำท่วม (ป้องกันไฟดูด / สัตว์มีพิษกัดต่อย)", agencies: ["dip", "ddce", "brc"], methods: ["info", "shortvideo", "social"], status: "published", target: "ผู้ประสบภัยน้ำท่วม", note: "ระวังงู ตะขาบ แมงป่องหนีน้ำเข้าบ้าน และอันตรายจากกระแสไฟรั่ว" },
+      { id: "m9_5", month: 9, week: "W4", title: "วันพิษสุนัขบ้าโลก (28 ก.ย.) & วันหัวใจโลก (29 ก.ย.)", agencies: ["dcd", "dncd", "brc"], methods: ["info", "shortvideo", "live", "social"], status: "published", target: "ผู้เลี้ยงสุนัข-แมว / ประชาชนทั่วไป", note: "ล้างแผล ใส่ยา กักหมา หาหมอ ฉีดวัคซีนครบ / ดูแลสุขภาพหัวใจ" },
+      { id: "m9_6", month: 9, week: "W4", title: "โรคตาแดง และโรคน้ำกัดเท้าช่วงน้ำท่วมขัง", agencies: ["dcd", "ddce", "brc"], methods: ["info", "social"], status: "published", target: "ประชาชนในพื้นที่น้ำท่วม", note: "ไม่ขยี้ตา ล้างเท้าให้สะอาดและเช็ดให้แห้ง" },
+
+      // ตุลาคม
+      { id: "m10_1", month: 10, week: "W1", title: "วันผู้สูงอายุสากล (ป้องกันการพลัดตกหกล้มในผู้สูงอายุ)", agencies: ["dip", "brc"], methods: ["info", "shortvideo", "article"], status: "published", target: "ผู้สูงอายุและครอบครัวผู้ดูแล", note: "ปรับสภาพแวดล้อมในบ้าน ป้องกันพลัดตกหกล้ม" },
+      { id: "m10_2", month: 10, week: "W1", title: "เทศกาลกินเจ (เลี่ยงอาหารหวาน มัน เค็ม และล้างผักผลไม้ลดสารตกค้าง)", agencies: ["dncd", "dcd", "brc"], methods: ["info", "social"], status: "published", target: "ผู้ถือศีลกินเจ / ประชาชนทั่วไป", note: "กินเจสุขภาพดี ลดแป้งและโซเดียม" },
+      { id: "m10_3", month: 10, week: "W2", title: "โรคหลังน้ำลด (ไข้ดิน/ฉี่หนู) เตือนประชาชนที่ลุยโคลนล้างบ้านหลังน้ำท่วมใหญ่", agencies: ["dcd", "ddce", "doed", "brc"], methods: ["info", "shortvideo", "spot", "press"], status: "producing", target: "ประชาชนที่ฟื้นฟูบ้านเรือนหลังน้ำลด", note: "สวมรองเท้าบูต ถุงมือยาง หน้ากากอนามัยขณะล้างโคลน" },
+      { id: "m10_4", month: 10, week: "W3", title: "รณรงค์วัคซีนไข้หวัดใหญ่และ RSV ช่วงเปลี่ยนฤดู (ปลายฝนต้นหนาว)", agencies: ["dcd", "brc"], methods: ["info", "shortvideo", "social"], status: "producing", target: "กลุ่มเสี่ยง 7 กลุ่ม / เด็กเล็ก / ผู้สูงอายุ", note: "เตรียมภูมิคุ้มกันก่อนเข้าสู่ฤดูหนาว" },
+      { id: "m10_5", month: 10, week: "W3", title: "วันโปลิโอโลก (24 ต.ค.) & เฝ้าระวังอาการรุนแรงของโรคมือ เท้า ปาก", agencies: ["dcd", "doe", "brc"], methods: ["info", "press", "shortvideo"], status: "producing", target: "ผู้ปกครองเด็กเล็ก", note: "สังเกตอาการซึม อาเจียน ชักกระตุก รีบนำส่ง รพ. ทันที" },
+      { id: "m10_6", month: 10, week: "W4", title: "เตรียมรับมือโรคฤดูหนาว & เฝ้าระวังโรคโปลิโอปลายเดือน", agencies: ["dcd", "doe", "brc"], methods: ["info", "press", "social"], status: "planned", target: "ประชาชนทั่วไป / ผู้ปกครอง", note: "ดูแลสุขภาพช่วงอากาศเปลี่ยนแปลง" },
+      { id: "m10_7", month: 10, week: "W4", title: "วันอัมพาตโลก (29 ต.ค. World Stroke Day) & รณรงค์ที่นั่งนิรภัยเด็ก (Car Seat)", agencies: ["dncd", "dip", "brc"], methods: ["info", "shortvideo", "motion"], status: "planned", target: "ประชาชนทั่วไป / ผู้ปกครองที่ใช้รถยนต์", note: "สัญญาณเตือน BE FAST โรคหลอดเลือดสมอง และการใช้ Car Seat ลดการเสียชีวิต" },
+
+      // พฤศจิกายน
+      { id: "m11_1", month: 11, week: "W1", title: "รณรงค์ลดหวาน มัน เค็ม (ต้อนรับเดือนแห่งวันเบาหวานโลก)", agencies: ["dncd", "brc"], methods: ["info", "shortvideo", "social"], status: "planned", target: "ประชาชนทั่วไป / ผู้ป่วยกลุ่มเสี่ยงเบาหวาน", note: "ปรับเปลี่ยนพฤติกรรมการบริโภค" },
+      { id: "m11_2", month: 11, week: "W2", title: "เทศกาลลอยกระทงปลอดภัย (ป้องกันการจมน้ำ / อันตรายจากประทัดและพลุ)", agencies: ["dip", "oacc", "brc"], methods: ["info", "shortvideo", "spot", "press"], status: "planned", target: "ผู้ปกครอง / เด็กเล็ก / นักท่องเที่ยวงานลอยกระทง", note: "ไม่ปล่อยเด็กอยู่ใกล้แหล่งน้ำตามลำพัง ไม่เก็บกระทงในน้ำ" },
+      { id: "m11_3", month: 11, week: "W2", title: "วันปอดอักเสบโลก (12 พ.ย.) เน้นเฝ้าระวังปอดอักเสบ IPD/RSV และวันเบาหวานโลก (14 พ.ย.)", agencies: ["dcd", "dncd", "brc"], methods: ["info", "shortvideo", "live", "article"], status: "planned", target: "เด็กเล็ก / ผู้สูงอายุ / ผู้ป่วยโรคเรื้อรัง", note: "รู้ทันอาการปอดอักเสบและคัดกรองระดับน้ำตาลในเลือด" },
+      { id: "m11_4", month: 11, week: "W3", title: "ประกาศเตือนโรคและภัยสุขภาพฤดูหนาว", agencies: ["dcd", "doe", "brc"], methods: ["press", "info", "social"], status: "planned", target: "ประชาชนทั่วไป", note: "ไข้หวัดใหญ่ ปอดอักเสบ อุจจาระร่วงในเด็ก โรคหัด โรคสุกใส" },
+      { id: "m11_5", month: 11, week: "W4", title: "เฝ้าระวังโรคไอกรนระบาดในโรงเรียน", agencies: ["dcd", "doe", "odpc", "brc"], methods: ["info", "shortvideo", "press"], status: "planned", target: "สถานศึกษา / ผู้ปกครอง / นักเรียน", note: "คัดกรองอาการไอติดต่อกันนานและฉีดวัคซีนกระตุ้น" },
+
+      // ธันวาคม
+      { id: "m12_1", month: 12, week: "W1", title: "วันเอดส์โลก (1 ธ.ค. World AIDS Day)", agencies: ["das", "brc"], methods: ["info", "shortvideo", "press"], agencyMethods: { "das": ["info", "shortvideo"], "brc": ["press"] }, status: "planned", target: "ประชาชนทั่วไป / เยาวชน / กลุ่มเสี่ยง", note: "ตรวจเอชไอวีฟรี รู้เร็ว รักษาเร็ว ไม่ตีตรา" },
+      { id: "m12_2", month: 12, week: "W2", title: "ภัยสุขภาพเสื้อกันหนาวมือสอง (โรคผิวหนัง / เชื้อรา / ตัวไร)", agencies: ["dcd", "doed", "brc"], methods: ["info", "shortvideo", "social"], status: "planned", target: "ประชาชนผู้ซื้อเสื้อกันหนาวมือสอง", note: "ซักต้มน้ำร้อนและตากแดดจัดก่อนสวมใส่" },
+      { id: "m12_3", month: 12, week: "W3", title: "ภัยท่องเที่ยวหน้าหนาว (โรคสครับไทฟัส / เครื่องทำน้ำอุ่นระบบแก๊ส / ดื่มเหล้าแก้หนาว)", agencies: ["dvb", "doed", "oacc", "brc"], methods: ["info", "shortvideo", "spot", "press"], status: "planned", target: "นักท่องเที่ยวสายกางเต็นท์-ยอดดอย / รีสอร์ต", note: "ระวังตัวไรอ่อนกัด การขาดอากาศหายใจในห้องน้ำแก๊ส และความเชื่อผิดเรื่องดื่มเหล้าคลายหนาว" },
+      { id: "m12_4", month: 12, week: "W4", title: "พิษสุราปลอม/ซุ้มยาดอง & ดื่มเหล้าแก้หนาว ย้ำเตือนอันตรายจากการดื่มสุราหนักช่วงอากาศหนาวเย็น", agencies: ["oacc", "doe", "brc"], methods: ["info", "shortvideo", "press", "spot"], status: "planned", target: "ประชาชนในพื้นที่อากาศหนาว / นักดื่ม", note: "ระวังเมทานอลในสุราเถื่อนและภาวะอุณหภูมิร่างกายต่ำ (Hypothermia)" },
+      { id: "m12_5", month: 12, week: "W5", title: "ปีใหม่ปลอดภัย (ขับไม่ดื่ม ดื่มไม่ขับ) & แคมเปญลดอุบัติเหตุเทศกาลปีใหม่ 2570", agencies: ["dip", "oacc", "ddce", "odpc", "brc"], methods: ["info", "shortvideo", "spot", "press", "social"], status: "planned", target: "ผู้ใช้รถใช้ถนน / ประชาชนเดินทางกลับภูมิลำเนา", note: "ง่วงไม่ขับ ขับไม่ดื่ม สวมหมวกนิรภัย คาดเข็มขัดนิรภัย" }
+    ];
+
+    const STATUS_CONFIG = {
+      planned: { label: "รอดำเนินการ", badge: "bg-slate-100 text-slate-700 border-slate-300", dot: "bg-slate-400" },
+      producing: { label: "กำลังผลิตสื่อ", badge: "bg-amber-50 text-amber-800 border-amber-300", dot: "bg-amber-500" },
+      review: { label: "รอตรวจทาน", badge: "bg-blue-50 text-blue-800 border-blue-300", dot: "bg-blue-500" },
+      published: { label: "เผยแพร่แล้ว", badge: "bg-emerald-50 text-emerald-800 border-emerald-300", dot: "bg-emerald-500" }
+    };
+
+    // ==========================================
+    // 2. APPLICATION STATE & STORAGE
+    // ==========================================
+    const DEFAULT_MONTHS_OVERVIEW = MONTHS.map(m => ({ id: m.id, overview: [...m.overview] }));
+    const STORAGE_KEY = "ddc_campaign_calendar_v2";
+    const PREV_STORAGE_KEY = "ddc_campaign_calendar_v1";
+
+    // Build default or normalized agencyMethods mapping: { agencyId: [methodId, ...] }
+    function normalizeCampaignItem(item) {
+      if (!Array.isArray(item.agencies)) item.agencies = [];
+      if (!Array.isArray(item.methods)) item.methods = [];
+
+      if (!item.agencyMethods || typeof item.agencyMethods !== "object") {
+        item.agencyMethods = {};
+        const ags = item.agencies;
+        const mts = item.methods;
+        if (ags.length === 1) {
+          item.agencyMethods[ags[0]] = [...mts];
+        } else if (ags.length > 1) {
+          // Distribute realistically: if brc (สสพ.) is present alongside technical divisions,
+          // assign PR/mass-media formats (press, spot, live, social) to brc and content/info/shortvideo to lead divisions
+          const hasBrc = ags.includes("brc");
+          const prMethods = ["press", "spot", "live"];
+          ags.forEach((agId, idx) => {
+            if (agId === "brc" && ags.length > 1) {
+              const assigned = mts.filter(m => prMethods.includes(m) || ( idx === ags.length - 1 && m === "social" ));
+              item.agencyMethods[agId] = assigned.length > 0 ? assigned : [mts[mts.length - 1] || "press"].filter(Boolean);
+            } else if (idx === 0) {
+              // Lead technical division gets info, shortvideo, article, motion, etc.
+              const assigned = hasBrc ? mts.filter(m => !["press", "spot"].includes(m)) : [...mts];
+              item.agencyMethods[agId] = assigned.length > 0 ? assigned : [...mts];
+            } else {
+              // Secondary technical divisions get info / shortvideo or first method
+              const assigned = mts.filter(m => ["info", "shortvideo", "spot", "social"].includes(m)).slice(0, 2);
+              item.agencyMethods[agId] = assigned.length > 0 ? assigned : (mts[0] ? [mts[0]] : []);
+            }
+          });
+        }
+      }
+
+      // Ensure every agency in item.agencies has an array in item.agencyMethods
+      item.agencies.forEach(agId => {
+        if (!Array.isArray(item.agencyMethods[agId])) {
+          item.agencyMethods[agId] = [];
+        }
+      });
+      // Remove any keys in agencyMethods not in item.agencies
+      Object.keys(item.agencyMethods).forEach(agId => {
+        if (!item.agencies.includes(agId)) {
+          delete item.agencyMethods[agId];
+        }
+      });
+      syncUnionMethodsFromAgencyMethods(item);
+      return item;
+    }
+
+    function syncUnionMethodsFromAgencyMethods(item) {
+      if (!item || !item.agencyMethods) return;
+      const unionSet = new Set();
+      (item.agencies || []).forEach(agId => {
+        const arr = item.agencyMethods[agId] || [];
+        arr.forEach(m => unionSet.add(m));
+      });
+      item.methods = Array.from(unionSet);
+    }
+    let state = {
+      currentView: "matrix",
+      selectedMonthTab: "all",
+      masterActiveTab: "agencies",
+      agencies: [],
+      methods: [],
+      campaigns: [],
+      monthOverviews: {}
+    };
+
+    let agencyChartInstance = null;
+    let methodChartInstance = null;
+
+    function syncMonthsOverviewsFromState() {
+      MONTHS.forEach(m => {
+        if (state.monthOverviews && Array.isArray(state.monthOverviews[m.id])) {
+          m.overview = state.monthOverviews[m.id];
+        } else {
+          const def = DEFAULT_MONTHS_OVERVIEW.find(d => d.id === m.id);
+          m.overview = def ? [...def.overview] : [];
+        }
+      });
+    }
+
+    function buildDefaultMonthOverviewsMap() {
+      const map = {};
+      DEFAULT_MONTHS_OVERVIEW.forEach(d => {
+        map[d.id] = [...d.overview];
+      });
+      return map;
+    }
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved && window.__SAVED_STATE__) {
+          state.agencies = window.__SAVED_STATE__.agencies || JSON.parse(JSON.stringify(DEFAULT_AGENCIES));
+          state.methods = window.__SAVED_STATE__.methods || JSON.parse(JSON.stringify(DEFAULT_METHODS));
+          state.campaigns = (window.__SAVED_STATE__.campaigns || JSON.parse(JSON.stringify(DEFAULT_CAMPAIGNS))).map(normalizeCampaignItem);
+          state.monthOverviews = window.__SAVED_STATE__.monthOverviews || buildDefaultMonthOverviewsMap();
+          syncMonthsOverviewsFromState();
+          return;
+        }
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.campaigns)) {
+            state.agencies = parsed.agencies || JSON.parse(JSON.stringify(DEFAULT_AGENCIES));
+            state.methods = parsed.methods || JSON.parse(JSON.stringify(DEFAULT_METHODS));
+            state.campaigns = parsed.campaigns.map(normalizeCampaignItem);
+            state.monthOverviews = parsed.monthOverviews || buildDefaultMonthOverviewsMap();
+            syncMonthsOverviewsFromState();
+            return;
+          }
+        }
+        // Check v1 migration
+        const savedV1 = localStorage.getItem(PREV_STORAGE_KEY);
+        if (savedV1) {
+          const parsedV1 = JSON.parse(savedV1);
+          if (parsedV1 && Array.isArray(parsedV1.campaigns)) {
+            state.agencies = parsedV1.agencies || JSON.parse(JSON.stringify(DEFAULT_AGENCIES));
+            state.methods = parsedV1.methods || JSON.parse(JSON.stringify(DEFAULT_METHODS));
+            state.campaigns = parsedV1.campaigns.map(c => {
+              if (c.id === "m12_1" && !c.agencyMethods) {
+                c.agencies = ["das", "brc"];
+                c.agencyMethods = { "das": ["info", "shortvideo"], "brc": ["press"] };
+              }
+              return normalizeCampaignItem(c);
+            });
+            state.monthOverviews = parsedV1.monthOverviews || buildDefaultMonthOverviewsMap();
+            syncMonthsOverviewsFromState();
+            saveState();
+            return;
+          }
+        }
+      } catch (e) {
+        // Ignore storage error in restricted iframe
+      }
+      state.agencies = JSON.parse(JSON.stringify(DEFAULT_AGENCIES));
+      state.methods = JSON.parse(JSON.stringify(DEFAULT_METHODS));
+      state.campaigns = JSON.parse(JSON.stringify(DEFAULT_CAMPAIGNS)).map(normalizeCampaignItem);
+      state.monthOverviews = buildDefaultMonthOverviewsMap();
+      syncMonthsOverviewsFromState();
+    }
+
+    function saveState() {
+      try {
+        MONTHS.forEach(m => {
+          state.monthOverviews[m.id] = [...m.overview];
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          agencies: state.agencies,
+          methods: state.methods,
+          campaigns: state.campaigns,
+          monthOverviews: state.monthOverviews
+        }));
+      } catch (e) {
+        // Ignore storage error
+      }
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById("toastBox");
+      const text = document.getElementById("toastText");
+      if (!box || !text) return;
+      text.textContent = msg;
+      box.classList.remove("hidden");
+      if (window._toastTimer) clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        box.classList.add("hidden");
+      }, 2600);
+    }
+
+    // ==========================================
+    // 3. HELPERS & LOOKUPS
+    // ==========================================
+    function getAgencyById(id) {
+      return state.agencies.find(a => a.id === id) || { id, name: id, short: id, color: "bg-slate-100 text-slate-700 border-slate-300" };
+    }
+
+    function getMethodById(id) {
+      return state.methods.find(m => m.id === id) || { id, name: id, short: id, icon: "📌", badgeClass: "bg-slate-100 text-slate-700 border-slate-300" };
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function getFilteredCampaigns() {
+      const q = (document.getElementById("filterSearch")?.value || "").trim().toLowerCase();
+      const monthVal = document.getElementById("filterMonth")?.value || "all";
+      const weekVal = document.getElementById("filterWeek")?.value || "all";
+      const agencyVal = document.getElementById("filterAgency")?.value || "all";
+      const methodVal = document.getElementById("filterMethod")?.value || "all";
+      const statusVal = document.getElementById("filterStatus")?.value || "all";
+
+      return state.campaigns.filter(item => {
+        if (monthVal !== "all" && String(item.month) !== String(monthVal)) return false;
+        if (weekVal !== "all" && item.week !== weekVal) return false;
+        if (agencyVal !== "all" && !(item.agencies || []).includes(agencyVal)) return false;
+        if (methodVal !== "all") {
+          if (agencyVal !== "all" && item.agencyMethods && Array.isArray(item.agencyMethods[agencyVal])) {
+            if (!item.agencyMethods[agencyVal].includes(methodVal)) return false;
+          } else if (!(item.methods || []).includes(methodVal)) {
+            return false;
+          }
+        }
+        if (state.currentView === "list" && statusVal !== "all" && item.status !== statusVal) return false;
+
+        if (q) {
+          const mObj = MONTHS.find(m => m.id === item.month);
+          const agencyNames = (item.agencies || []).map(a => {
+            const ag = getAgencyById(a);
+            return ag.name + " " + ag.short;
+          }).join(" ");
+          const methodNames = (item.methods || []).map(m => {
+            const mt = getMethodById(m);
+            return mt.name + " " + mt.short;
+          }).join(" ");
+          const hay = `${item.title} ${item.target || ""} ${item.note || ""} ${mObj ? mObj.name : ""} ${agencyNames} ${methodNames}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    // ==========================================
+    // 4. UI INITIALIZATION & FILTER DROPDOWNS
+    // ==========================================
+    function populateSelectOptions() {
+      const filterMonth = document.getElementById("filterMonth");
+      const editMonth = document.getElementById("editMonth");
+      if (filterMonth) {
+        const curM = filterMonth.value || "all";
+        filterMonth.innerHTML = `<option value="all">ทุกเดือน (ม.ค. – ธ.ค.)</option>` +
+          MONTHS.map(m => `<option value="${m.id}">เดือน${m.name}</option>`).join("");
+        filterMonth.value = curM;
+      }
+      if (editMonth) {
+        editMonth.innerHTML = MONTHS.map(m => `<option value="${m.id}">${m.id}. ${m.name}</option>`).join("");
+      }
+
+      const filterAgency = document.getElementById("filterAgency");
+      if (filterAgency) {
+        const curA = filterAgency.value || "all";
+        filterAgency.innerHTML = `<option value="all">ทุกหน่วยงานภายใน กรมควบคุมโรค</option>` +
+          state.agencies.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.short)} - ${escapeHtml(a.name)}</option>`).join("");
+        filterAgency.value = curA;
+      }
+
+      const filterMethod = document.getElementById("filterMethod");
+      if (filterMethod) {
+        const curMt = filterMethod.value || "all";
+        filterMethod.innerHTML = `<option value="all">ทุกวิธีการรณรงค์ / รูปแบบสื่อ</option>` +
+          state.methods.map(m => `<option value="${escapeHtml(m.id)}">${m.icon} ${escapeHtml(m.name)}</option>`).join("");
+        filterMethod.value = curMt;
+      }
+
+      renderQuickMethodPills();
+    }
+
+    function renderQuickMethodPills() {
+      const container = document.getElementById("quickMethodPills");
+      if (!container) return;
+      const curMt = document.getElementById("filterMethod")?.value || "all";
+      let html = `<button onclick="setQuickMethodFilter('all')" class="px-2.5 py-1 rounded-full text-xs font-medium border transition ${curMt === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}">ทั้งหมด</button>`;
+      state.methods.forEach(m => {
+        const active = curMt === m.id;
+        html += `<button onclick="setQuickMethodFilter('${escapeHtml(m.id)}')" class="px-2.5 py-1 rounded-full text-xs font-medium border transition ${active ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}">${m.icon} ${escapeHtml(m.short)}</button>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function setQuickMethodFilter(methodId) {
+      const select = document.getElementById("filterMethod");
+      if (select) {
+        select.value = methodId;
+        applyFilters();
+      }
+    }
+
+    function resetFilters() {
+      document.getElementById("filterSearch").value = "";
+      document.getElementById("filterMonth").value = "all";
+      document.getElementById("filterWeek").value = "all";
+      document.getElementById("filterAgency").value = "all";
+      document.getElementById("filterMethod").value = "all";
+      if (document.getElementById("filterStatus")) {
+        document.getElementById("filterStatus").value = "all";
+      }
+      state.selectedMonthTab = "all";
+      applyFilters();
+      showToast("ล้างตัวกรองทั้งหมดแล้ว");
+    }
+
+    function applyFilters() {
+      renderQuickMethodPills();
+      updateKPIs();
+      renderMatrixView();
+      renderMonthlyView();
+      renderListView();
+      if (state.currentView === "dashboard") {
+        renderDashboardView();
+      }
+    }
+
+    function updateKPIs() {
+      const filtered = getFilteredCampaigns();
+      document.getElementById("statTotal").textContent = filtered.length;
+      document.getElementById("statInfoCount").textContent = filtered.filter(i => (i.methods || []).includes("info")).length;
+      document.getElementById("statVideoCount").textContent = filtered.filter(i => (i.methods || []).includes("shortvideo")).length;
+      document.getElementById("statAssignedCount").textContent = filtered.filter(i => (i.agencies || []).length > 0).length;
+      document.getElementById("statProgressCount").textContent = filtered.filter(i => i.status === "producing" || i.status === "published").length;
+    }
+
+    // ==========================================
+    // 5. VIEW SWITCHER
+    // ==========================================
+    function switchView(viewName) {
+      state.currentView = viewName;
+      const views = {
+        matrix: document.getElementById("viewMatrix"),
+        monthly: document.getElementById("viewMonthly"),
+        list: document.getElementById("viewList"),
+        dashboard: document.getElementById("viewDashboard")
+      };
+      const tabs = {
+        matrix: document.getElementById("tabMatrix"),
+        monthly: document.getElementById("tabMonthly"),
+        list: document.getElementById("tabList"),
+        dashboard: document.getElementById("tabDashboard")
+      };
+
+      Object.keys(views).forEach(k => {
+        if (k === viewName) {
+          views[k].classList.remove("hidden");
+          tabs[k].className = "px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition bg-emerald-700 text-white shadow-sm";
+        } else {
+          views[k].classList.add("hidden");
+          tabs[k].className = "px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:text-slate-900";
+        }
+      });
+
+      if (viewName === "dashboard") {
+        renderDashboardView();
+      }
+    }
+
+    // ==========================================
+    // 6. RENDER VIEW 1: WEEKLY MATRIX (12 Months x W1-W5)
+    // ==========================================
+    function renderMatrixView() {
+      const tbody = document.getElementById("matrixTableBody");
+      if (!tbody) return;
+
+      const filtered = getFilteredCampaigns();
+      const monthFilter = document.getElementById("filterMonth")?.value || "all";
+      const weeks = ["W1", "W2", "W3", "W4", "W5"];
+
+      let rowsHtml = "";
+      MONTHS.forEach(m => {
+        if (monthFilter !== "all" && String(m.id) !== String(monthFilter)) return;
+        const monthItems = filtered.filter(item => item.month === m.id);
+
+        const hasActiveFilter = (document.getElementById("filterSearch")?.value || "").trim() !== "" ||
+          (document.getElementById("filterAgency")?.value || "all") !== "all" ||
+          (document.getElementById("filterMethod")?.value || "all") !== "all" ||
+          (document.getElementById("filterWeek")?.value || "all") !== "all";
+        if (hasActiveFilter && monthItems.length === 0) return;
+
+        const overviewBullets = m.overview.map((txt, idx) => `
+          <li class="group/ov flex items-start justify-between gap-1 leading-snug text-slate-600 hover:text-slate-900">
+            <span>• ${escapeHtml(txt)}</span>
+            <button onclick="removeMonthOverviewItem(${m.id}, ${idx})" title="ลบหัวข้อภาพรวมนี้" class="opacity-0 group-hover/ov:opacity-100 text-rose-500 hover:text-rose-700 font-bold px-1 rounded no-print transition">×</button>
+          </li>
+        `).join("");
+
+        let weekCellsHtml = "";
+        weeks.forEach(w => {
+          const cellItems = monthItems.filter(i => i.week === w);
+          const cardsHtml = cellItems.map(item => {
+            normalizeCampaignItem(item);
+            const st = STATUS_CONFIG[item.status] || STATUS_CONFIG.planned;
+            const agencyRowsHtml = (item.agencies || []).map(aid => {
+              const ag = getAgencyById(aid);
+              const agMts = (item.agencyMethods && item.agencyMethods[aid]) || [];
+              const mtPills = agMts.map(mid => {
+                const mt = getMethodById(mid);
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-medium border ${mt.badgeClass}">
+                  <span>${mt.icon} ${escapeHtml(mt.short)}</span>
+                  <button onclick="quickRemoveMethodFromAgency(event, '${escapeHtml(item.id)}', '${escapeHtml(aid)}', '${escapeHtml(mid)}')" title="ลบสื่อ ${escapeHtml(mt.short)} ของ ${escapeHtml(ag.short)}" class="hover:text-rose-600 font-bold ml-0.5 no-print">×</button>
+                </span>`;
+              }).join(" ");
+
+              return `
+                <div class="p-1.5 rounded-md bg-slate-50 border border-slate-100 space-y-1">
+                  <div class="flex items-center justify-between gap-1">
+                    <span title="${escapeHtml(ag.name)}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${ag.color}">
+                      <span>${escapeHtml(ag.short)}</span>
+                      <button onclick="quickRemoveAgencyFromItem(event, '${escapeHtml(item.id)}', '${escapeHtml(aid)}')" title="ปรับลดหน่วยงาน ${escapeHtml(ag.short)}" class="hover:text-rose-600 font-bold leading-none no-print">×</button>
+                    </span>
+                    <span class="text-[10px] text-emerald-700 font-medium no-print">+ปรับสื่อ</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    ${mtPills || `<span class="text-[10px] text-amber-600 italic">คลิกเพื่อเลือกสื่อของ ${escapeHtml(ag.short)}</span>`}
+                  </div>
+                </div>
+              `;
+            }).join("");
+
+            return `
+              <div onclick="openCampaignModal('${escapeHtml(item.id)}')" class="group cursor-pointer rounded-lg border border-slate-200 hover:border-emerald-500 bg-white p-2.5 shadow-2xs hover:shadow-md transition text-left space-y-1.5 relative">
+                <div class="flex items-start justify-between gap-1.5">
+                  <p class="font-semibold text-slate-800 text-xs leading-snug group-hover:text-emerald-700 pr-1">${escapeHtml(item.title)}</p>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <span class="w-2 h-2 rounded-full ${st.dot}" title="${st.label}"></span>
+                    <button onclick="quickDeleteCampaign(event, '${escapeHtml(item.id)}')" title="ลบ/ปรับลดประเด็นรณรงค์นี้" class="opacity-70 hover:opacity-100 text-slate-400 hover:text-rose-600 px-1 rounded text-xs font-bold no-print">🗑️</button>
+                  </div>
+                </div>
+                <div class="space-y-1 pt-0.5">
+                  ${agencyRowsHtml || `<div class="text-[10px] text-rose-500 font-medium py-1">+ คลิกเพื่อระบุหน่วยงานและรูปแบบสื่อ</div>`}
+                </div>
+              </div>
+            `;
+          }).join("");
+
+          weekCellsHtml += `
+            <td class="p-2 align-top border-r border-slate-200 bg-slate-50/40 min-w-[205px]">
+              <div class="space-y-2">
+                ${cardsHtml}
+                <button onclick="openNewCampaignForSlot(${m.id}, '${w}')" class="w-full py-1.5 px-2 rounded-lg border border-dashed border-slate-300 hover:border-emerald-500 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50/50 text-[11px] font-medium transition flex items-center justify-center gap-1 no-print">
+                  <span>+ เพิ่มประเด็น ${w}</span>
+                </button>
+              </div>
+            </td>
+          `;
+        });
+
+        rowsHtml += `
+          <tr class="hover:bg-slate-50/60">
+            <td class="p-3 align-top border-r border-slate-200 bg-white">
+              <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded-lg bg-emerald-800 text-white font-bold text-xs flex items-center justify-center shrink-0">${m.id}</span>
+                <div>
+                  <p class="font-bold text-slate-900 text-sm">${escapeHtml(m.name)}</p>
+                  <span class="text-[11px] text-slate-500">${escapeHtml(m.season)}</span>
+                </div>
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                รวม ${monthItems.length} ประเด็นรณรงค์
+              </div>
+            </td>
+            <td class="p-3 align-top border-r border-slate-200 bg-slate-50/70 max-w-xs">
+              <ul class="space-y-1 text-[11px]">
+                ${overviewBullets}
+              </ul>
+              <button onclick="openMasterOverviewForMonth(${m.id})" class="mt-2 text-[11px] text-emerald-700 hover:underline font-medium no-print">+ ปรับลด/เพิ่มประเด็นหลัก</button>
+            </td>
+            ${weekCellsHtml}
+          </tr>
+        `;
+      });
+
+      if (!rowsHtml) {
+        rowsHtml = `<tr><td colspan="7" class="p-8 text-center text-slate-500">ไม่พบประเด็นรณรงค์ที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
+      }
+      tbody.innerHTML = rowsHtml;
+    }
+
+    // ==========================================
+    // 7. RENDER VIEW 2: MONTHLY WORKSPACE (Quick Toggle)
+    // ==========================================
+    function renderMonthlyView() {
+      const selector = document.getElementById("monthQuickSelector");
+      const container = document.getElementById("monthlyCardsContainer");
+      if (!selector || !container) return;
+
+      selector.innerHTML = `<button onclick="selectMonthWorkspace('all')" class="px-2.5 py-1 rounded-lg text-xs font-semibold transition ${state.selectedMonthTab === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">ทุกเดือน</button>` +
+        MONTHS.map(m => `<button onclick="selectMonthWorkspace('${m.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold transition ${String(state.selectedMonthTab) === String(m.id) ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">${m.short}</button>`).join("");
+
+      const filtered = getFilteredCampaigns();
+      let html = "";
+
+      MONTHS.forEach(m => {
+        if (state.selectedMonthTab !== "all" && String(m.id) !== String(state.selectedMonthTab)) return;
+        const mItems = filtered.filter(i => i.month === m.id);
+        if (mItems.length === 0) return;
+
+        const cardsHtml = mItems.map(item => {
+          normalizeCampaignItem(item);
+          const st = STATUS_CONFIG[item.status] || STATUS_CONFIG.planned;
+
+          const perAgencyBlocks = (item.agencies || []).map(aid => {
+            const ag = getAgencyById(aid);
+            const agMethods = (item.agencyMethods && item.agencyMethods[aid]) || [];
+            const methodButtonsForAg = state.methods.map(mt => {
+              const active = agMethods.includes(mt.id);
+              return `<button onclick="quickToggleAgencyMethod('${escapeHtml(item.id)}', '${escapeHtml(aid)}', '${escapeHtml(mt.id)}')" class="px-2 py-1 rounded-md text-[11px] font-medium border transition flex items-center gap-1 ${active ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100'}">${mt.icon} ${escapeHtml(mt.short)}</button>`;
+            }).join("");
+
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold border ${ag.color}">
+                    <span>${escapeHtml(ag.short)} - ${escapeHtml(ag.name)}</span>
+                  </span>
+                  <button onclick="quickRemoveAgencyFromItem(event, '${escapeHtml(item.id)}', '${escapeHtml(aid)}')" title="ปรับลดหน่วยงานนี้ออก" class="px-1.5 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-semibold">× ลบหน่วยงาน</button>
+                </div>
+                <div>
+                  <span class="block text-[10px] font-semibold text-slate-500 mb-1">คลิกเลือกรูปแบบสื่อที่ <strong>${escapeHtml(ag.short)}</strong> รับผิดชอบผลิต:</span>
+                  <div class="flex flex-wrap gap-1">
+                    ${methodButtonsForAg}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("");
+
+          const unassignedAgencies = state.agencies.filter(ag => !(item.agencies || []).includes(ag.id));
+          const addAgencySelect = unassignedAgencies.length > 0 ? `
+            <select onchange="quickAddAgencyToItem('${escapeHtml(item.id)}', this.value); this.value='';" class="w-full text-xs px-3 py-1.5 rounded-lg border border-dashed border-emerald-400 text-emerald-800 bg-emerald-50/50 hover:bg-emerald-50 font-semibold cursor-pointer">
+              <option value="">+ เพิ่มหน่วยงานร่วมดำเนินการในประเด็นนี้...</option>
+              ${unassignedAgencies.map(ag => `<option value="${escapeHtml(ag.id)}">+ ${escapeHtml(ag.short)} (${escapeHtml(ag.name)})</option>`).join("")}
+            </select>
+          ` : "";
+
+          return `
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition flex flex-col justify-between gap-3">
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="px-2 py-0.5 rounded bg-slate-800 text-white font-bold text-xs">${escapeHtml(item.week)}</span>
+                  <div class="flex items-center gap-1.5">
+                    <select onchange="quickChangeStatus('${escapeHtml(item.id)}', this.value)" class="text-xs px-2 py-1 rounded-md border font-medium ${st.badge}">
+                      <option value="planned" ${item.status === 'planned' ? 'selected' : ''}>⏳ รอดำเนินการ</option>
+                      <option value="producing" ${item.status === 'producing' ? 'selected' : ''}>🎨 กำลังผลิตสื่อ</option>
+                      <option value="review" ${item.status === 'review' ? 'selected' : ''}>🔍 รอตรวจทาน</option>
+                      <option value="published" ${item.status === 'published' ? 'selected' : ''}>✅ เผยแพร่แล้ว</option>
+                    </select>
+                    <button onclick="openCampaignModal('${escapeHtml(item.id)}')" title="แก้ไขประเด็นนี้" class="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">แก้ไข</button>
+                    <button onclick="quickDeleteCampaign(event, '${escapeHtml(item.id)}')" title="ลบ/ปรับลดประเด็นรณรงค์นี้" class="px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold">ลบ</button>
+                  </div>
+                </div>
+
+                <h4 class="font-bold text-slate-900 text-sm sm:text-base leading-snug">${escapeHtml(item.title)}</h4>
+                ${item.target ? `<p class="text-xs text-slate-500"><span class="font-semibold text-slate-700">กลุ่มเป้าหมาย:</span> ${escapeHtml(item.target)}</p>` : ''}
+                ${item.note ? `<p class="text-xs text-slate-500"><span class="font-semibold text-slate-700">ประเด็นเน้นย้ำ:</span> ${escapeHtml(item.note)}</p>` : ''}
+
+                <!-- Per-Agency Media Assignment Section -->
+                <div class="pt-1 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-700">🏢 หน่วยงาน & รูปแบบสื่อที่แต่ละหน่วยงานรับผิดชอบ:</span>
+                  </div>
+                  ${perAgencyBlocks || `<p class="text-xs text-rose-500">ยังไม่ได้ระบุหน่วยงาน</p>`}
+                  ${addAgencySelect}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        html += `
+          <div class="bg-slate-100/80 rounded-2xl p-4 border border-slate-200 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-emerald-800 text-white font-bold text-sm flex items-center justify-center">${m.id}</span>
+                <div>
+                  <h3 class="text-base font-bold text-slate-900">เดือน${escapeHtml(m.name)} (${escapeHtml(m.season)})</h3>
+                  <p class="text-xs text-slate-500">ทั้งหมด ${mItems.length} ประเด็นรณรงค์</p>
+                </div>
+              </div>
+              <button onclick="openNewCampaignForSlot(${m.id}, 'W1')" class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">+ เพิ่มประเด็นเดือน${escapeHtml(m.short)}</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+              ${cardsHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      if (!html) {
+        html = `<div class="bg-white rounded-xl p-8 text-center text-slate-500 border border-slate-200">ไม่พบรายการที่ตรงกับตัวกรอง</div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function selectMonthWorkspace(mId) {
+      state.selectedMonthTab = mId;
+      renderMonthlyView();
+    }
+
+    function quickToggleMethod(itemId, methodId) {
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item) return;
+      if (!Array.isArray(item.methods)) item.methods = [];
+      const idx = item.methods.indexOf(methodId);
+      if (idx >= 0) {
+        item.methods.splice(idx, 1);
+      } else {
+        item.methods.push(methodId);
+      }
+      saveState();
+      applyFilters();
+      const mt = getMethodById(methodId);
+      showToast(`อัปเดตวิธีรณรงค์ "${mt.short}" แล้ว`);
+    }
+
+    function quickChangeStatus(itemId, newStatus) {
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item) return;
+      item.status = newStatus;
+      saveState();
+      applyFilters();
+      showToast("อัปเดตสถานะการผลิตสื่อแล้ว");
+    }
+
+    // ==========================================
+    // 8. RENDER VIEW 3: LIST & TABLE VIEW
+    // ==========================================
+    function renderListView() {
+      const tbody = document.getElementById("listTableBody");
+      if (!tbody) return;
+      const filtered = getFilteredCampaigns();
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500">ไม่พบข้อมูลที่ตรงกับตัวกรอง</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const mObj = MONTHS.find(m => m.id === item.month) || { name: item.month, short: item.month };
+        const st = STATUS_CONFIG[item.status] || STATUS_CONFIG.planned;
+
+        normalizeCampaignItem(item);
+        const agenciesHtml = (item.agencies || []).map(aid => {
+          const ag = getAgencyById(aid);
+          return `<div class="mb-1">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${ag.color}" title="${escapeHtml(ag.name)}">
+              <span>${escapeHtml(ag.short)} - ${escapeHtml(ag.name)}</span>
+              <button onclick="quickRemoveAgencyFromItem(event, '${escapeHtml(item.id)}', '${escapeHtml(aid)}')" title="ปรับลดหน่วยงานนี้ออก" class="hover:text-rose-600 font-bold">×</button>
+            </span>
+          </div>`;
+        }).join("");
+
+        const methodsHtml = (item.agencies || []).map(aid => {
+          const ag = getAgencyById(aid);
+          const agMts = (item.agencyMethods && item.agencyMethods[aid]) || [];
+          const pills = agMts.map(mid => {
+            const mt = getMethodById(mid);
+            return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${mt.badgeClass}">
+              <span>${mt.icon} ${escapeHtml(mt.short)}</span>
+              <button onclick="quickRemoveMethodFromAgency(event, '${escapeHtml(item.id)}', '${escapeHtml(aid)}', '${escapeHtml(mid)}')" title="ลบสื่อนี้ของ ${escapeHtml(ag.short)}" class="hover:text-rose-600 font-bold">×</button>
+            </span>`;
+          }).join(" ");
+          return `<div class="mb-1.5 flex items-center flex-wrap gap-1">
+            <span class="text-[11px] font-bold text-slate-700 min-w-[52px]">${escapeHtml(ag.short)}:</span>
+            ${pills || `<span class="text-xs text-amber-600 italic">ยังไม่ระบุสื่อ</span>`}
+          </div>`;
+        }).join("");
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 px-4 align-top">
+              <div class="font-bold text-slate-800">${escapeHtml(mObj.name)}</div>
+              <span class="inline-block mt-0.5 px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-semibold text-xs">${escapeHtml(item.week)}</span>
+            </td>
+            <td class="py-3 px-4 align-top">
+              <p class="font-bold text-slate-900">${escapeHtml(item.title)}</p>
+              ${item.target ? `<p class="text-xs text-slate-500 mt-0.5">🎯 กลุ่มเป้าหมาย: ${escapeHtml(item.target)}</p>` : ''}
+              ${item.note ? `<p class="text-xs text-slate-500 mt-0.5">💡 หมายเหตุ: ${escapeHtml(item.note)}</p>` : ''}
+            </td>
+            <td class="py-3 px-4 align-top">
+              <div class="flex flex-wrap gap-1">
+                ${agenciesHtml || `<span class="text-xs text-rose-500">ยังไม่ระบุหน่วยงาน</span>`}
+              </div>
+            </td>
+            <td class="py-3 px-4 align-top">
+              <div class="flex flex-wrap gap-1">
+                ${methodsHtml || `<span class="text-xs text-amber-600">ยังไม่ระบุวิธีรณรงค์</span>`}
+              </div>
+            </td>
+            <td class="py-3 px-4 align-top">
+              <select onchange="quickChangeStatus('${escapeHtml(item.id)}', this.value)" class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${st.badge}">
+                <option value="planned" ${item.status === 'planned' ? 'selected' : ''}>⏳ รอดำเนินการ</option>
+                <option value="producing" ${item.status === 'producing' ? 'selected' : ''}>🎨 กำลังผลิตสื่อ</option>
+                <option value="review" ${item.status === 'review' ? 'selected' : ''}>🔍 รอตรวจทาน</option>
+                <option value="published" ${item.status === 'published' ? 'selected' : ''}>✅ เผยแพร่แล้ว</option>
+              </select>
+            </td>
+            <td class="py-3 px-4 align-top text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button onclick="openCampaignModal('${escapeHtml(item.id)}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                  แก้ไข
+                </button>
+                <button onclick="quickDeleteCampaign(event, '${escapeHtml(item.id)}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold">
+                  ลบ
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // ==========================================
+    // 9. RENDER VIEW 4: DASHBOARD & CHARTS
+    // ==========================================
+    function renderDashboardView() {
+      const filtered = getFilteredCampaigns();
+
+      const agencyCounts = state.agencies.map(ag => {
+        const items = filtered.filter(c => (c.agencies || []).includes(ag.id));
+        return { ...ag, count: items.length, items };
+      }).sort((a, b) => b.count - a.count);
+
+      const methodCounts = state.methods.map(mt => {
+        const count = filtered.filter(c => (c.methods || []).includes(mt.id)).length;
+        return { ...mt, count };
+      }).sort((a, b) => b.count - a.count);
+
+      const ctxAgency = document.getElementById("chartAgency");
+      if (ctxAgency && typeof Chart !== "undefined") {
+        if (agencyChartInstance) agencyChartInstance.destroy();
+        agencyChartInstance = new Chart(ctxAgency, {
+          type: "bar",
+          data: {
+            labels: agencyCounts.map(a => a.short),
+            datasets: [{
+              label: "จำนวนประเด็นรณรงค์",
+              data: agencyCounts.map(a => a.count),
+              backgroundColor: "#047857",
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+          }
+        });
+      }
+
+      const ctxMethod = document.getElementById("chartMethod");
+      if (ctxMethod && typeof Chart !== "undefined") {
+        if (methodChartInstance) methodChartInstance.destroy();
+        methodChartInstance = new Chart(ctxMethod, {
+          type: "bar",
+          data: {
+            labels: methodCounts.map(m => m.short),
+            datasets: [{
+              label: "จำนวนประเด็นที่ใช้สื่อนี้",
+              data: methodCounts.map(m => m.count),
+              backgroundColor: ["#0d9488", "#e11d48", "#2563eb", "#d97706", "#4f46e5", "#9333ea", "#dc2626", "#059669"],
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              x: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+          }
+        });
+      }
+
+      const grid = document.getElementById("agencyBreakdownGrid");
+      if (grid) {
+        grid.innerHTML = agencyCounts.map(ag => {
+          const sampleTopics = ag.items.slice(0, 4).map(it => {
+            const mObj = MONTHS.find(m => m.id === it.month);
+            return `<li class="text-xs text-slate-600 truncate">• <span class="font-semibold text-slate-800">[${mObj ? mObj.short : ''} ${it.week}]</span> ${escapeHtml(it.title)}</li>`;
+          }).join("");
+
+          return `
+            <div class="rounded-xl border border-slate-200 p-4 bg-slate-50/60 flex flex-col justify-between gap-3">
+              <div>
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <span class="inline-block px-2 py-0.5 rounded text-xs font-bold border ${ag.color}">${escapeHtml(ag.short)}</span>
+                    <h4 class="font-bold text-slate-900 text-sm mt-1">${escapeHtml(ag.name)}</h4>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-emerald-700 text-sm shrink-0">${ag.count} ประเด็น</span>
+                </div>
+                <ul class="space-y-1 mt-2">
+                  ${sampleTopics || `<li class="text-xs text-slate-400">ยังไม่มีประเด็นที่มอบหมาย</li>`}
+                  ${ag.items.length > 4 ? `<li class="text-[11px] text-slate-400 font-medium">+ อีก ${ag.items.length - 4} ประเด็น...</li>` : ''}
+                </ul>
+              </div>
+              <button onclick="filterByAgencyFromDashboard('${escapeHtml(ag.id)}')" class="w-full py-1.5 px-3 rounded-lg bg-white hover:bg-emerald-50 text-emerald-800 border border-slate-200 hover:border-emerald-300 text-xs font-semibold transition">
+                ดูตารางเฉพาะหน่วยงานนี้ →
+              </button>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    function filterByAgencyFromDashboard(agencyId) {
+      const sel = document.getElementById("filterAgency");
+      if (sel) sel.value = agencyId;
+      switchView("matrix");
+      applyFilters();
+      const ag = getAgencyById(agencyId);
+      showToast(`กรองตารางเฉพาะ "${ag.short} - ${ag.name}"`);
+    }
+
+    // ==========================================
+    // 10. MODAL: ADD / EDIT CAMPAIGN ITEM
+    // ==========================================
+    function openNewCampaignForSlot(monthId, weekCode) {
+      openCampaignModal(null, monthId, weekCode);
+    }
+
+    let modalTempAgencyMethods = {};
+
+    function quickToggleAgencyMethod(itemId, agencyId, methodId) {
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item) return;
+      normalizeCampaignItem(item);
+      if (!Array.isArray(item.agencyMethods[agencyId])) {
+        item.agencyMethods[agencyId] = [];
+      }
+      const arr = item.agencyMethods[agencyId];
+      const idx = arr.indexOf(methodId);
+      if (idx >= 0) {
+        arr.splice(idx, 1);
+      } else {
+        arr.push(methodId);
+      }
+      syncUnionMethodsFromAgencyMethods(item);
+      saveState();
+      applyFilters();
+      const ag = getAgencyById(agencyId);
+      const mt = getMethodById(methodId);
+      showToast(`อัปเดตสื่อ "${mt.short}" ของ ${ag.short} แล้ว`);
+    }
+
+    function quickRemoveMethodFromAgency(event, itemId, agencyId, methodId) {
+      if (event) event.stopPropagation();
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item) return;
+      normalizeCampaignItem(item);
+      if (Array.isArray(item.agencyMethods[agencyId])) {
+        item.agencyMethods[agencyId] = item.agencyMethods[agencyId].filter(m => m !== methodId);
+      }
+      syncUnionMethodsFromAgencyMethods(item);
+      saveState();
+      applyFilters();
+      const ag = getAgencyById(agencyId);
+      const mt = getMethodById(methodId);
+      showToast(`ลบสื่อ "${mt.short}" ออกจาก ${ag.short} แล้ว`);
+    }
+
+    function openCampaignModal(itemId = null, defaultMonth = 1, defaultWeek = "W1") {
+      const modal = document.getElementById("campaignModal");
+      const titleEl = document.getElementById("modalTitle");
+      const deleteBtn = document.getElementById("btnDeleteItem");
+
+      populateSelectOptions();
+
+      let item = null;
+      if (itemId) {
+        item = state.campaigns.find(c => c.id === itemId);
+        if (item) normalizeCampaignItem(item);
+      }
+
+      document.getElementById("editItemId").value = item ? item.id : "";
+      document.getElementById("editMonth").value = item ? item.month : defaultMonth;
+      document.getElementById("editWeek").value = item ? item.week : defaultWeek;
+      document.getElementById("editStatus").value = item ? item.status : "planned";
+      document.getElementById("editTitle").value = item ? item.title : "";
+      document.getElementById("editTarget").value = item ? (item.target || "") : "";
+      document.getElementById("editNote").value = item ? (item.note || "") : "";
+
+      titleEl.textContent = item ? "แก้ไขประเด็นรณรงค์และกำหนดสื่อแยกตามหน่วยงาน" : "เพิ่มประเด็นรณรงค์ใหม่ในปฏิทิน";
+      if (deleteBtn) {
+        deleteBtn.style.display = item ? "inline-block" : "none";
+      }
+
+      if (item && item.agencyMethods) {
+        modalTempAgencyMethods = JSON.parse(JSON.stringify(item.agencyMethods));
+      } else {
+        modalTempAgencyMethods = { "brc": ["info", "shortvideo"] };
+      }
+
+      const initAgencies = item ? [...(item.agencies || [])] : ["brc"];
+      const initMethods = item ? [...(item.methods || [])] : ["info", "shortvideo"];
+      renderModalCheckboxes(initAgencies, initMethods);
+      modal.classList.remove("hidden");
+    }
+
+    function onModalAgencyCheckboxChange(agencyId, isChecked) {
+      const curAg = getCurrentlyCheckedModalValues("modalAgencyCheckbox");
+      if (isChecked && !Array.isArray(modalTempAgencyMethods[agencyId])) {
+        modalTempAgencyMethods[agencyId] = ["info"];
+      }
+      renderModalAgencyMethodsMatrix(curAg);
+    }
+
+    function toggleModalAgencyMethod(agencyId, methodId) {
+      if (!Array.isArray(modalTempAgencyMethods[agencyId])) {
+        modalTempAgencyMethods[agencyId] = [];
+      }
+      const arr = modalTempAgencyMethods[agencyId];
+      const idx = arr.indexOf(methodId);
+      if (idx >= 0) {
+        arr.splice(idx, 1);
+      } else {
+        arr.push(methodId);
+      }
+      const curAg = getCurrentlyCheckedModalValues("modalAgencyCheckbox");
+      renderModalAgencyMethodsMatrix(curAg);
+    }
+
+    function renderModalAgencyMethodsMatrix(selectedAgencies) {
+      const matrixEl = document.getElementById("editAgencyMethodsMatrix");
+      if (!matrixEl) return;
+
+      if (!selectedAgencies || selectedAgencies.length === 0) {
+        matrixEl.innerHTML = `<div class="p-3 rounded-lg bg-white border border-rose-200 text-rose-600 text-xs">กรุณาติ๊กเลือกอย่างน้อย 1 หน่วยงานในข้อ 1 ด้านบน เพื่อระบุรูปแบบสื่อของแต่ละหน่วยงาน</div>`;
+        return;
+      }
+
+      matrixEl.innerHTML = selectedAgencies.map(aid => {
+        const ag = getAgencyById(aid);
+        const assignedMts = modalTempAgencyMethods[aid] || [];
+        const methodPills = state.methods.map(mt => {
+          const active = assignedMts.includes(mt.id);
+          return `<button type="button" onclick="toggleModalAgencyMethod('${escapeHtml(aid)}', '${escapeHtml(mt.id)}')" class="px-2.5 py-1 rounded-lg text-xs font-medium border transition flex items-center gap-1 ${active ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}">${mt.icon} ${escapeHtml(mt.short)}</button>`;
+        }).join("");
+
+        return `
+          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="px-2 py-0.5 rounded text-xs font-bold border ${ag.color}">${escapeHtml(ag.short)}</span>
+                <span class="text-xs font-bold text-slate-800">${escapeHtml(ag.name)}</span>
+              </div>
+              <span class="text-[11px] text-slate-500">เลือกแล้ว ${assignedMts.length} รูปแบบสื่อ</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${methodPills}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderModalCheckboxes(selectedAgencies, selectedMethods) {
+      const agContainer = document.getElementById("editAgenciesContainer");
+      if (agContainer) {
+        agContainer.innerHTML = state.agencies.map(ag => {
+          const checked = selectedAgencies.includes(ag.id) ? "checked" : "";
+          return `
+            <label class="flex items-start gap-2 p-2 rounded-lg border border-slate-200 bg-white hover:border-emerald-400 cursor-pointer">
+              <input type="checkbox" name="modalAgencyCheckbox" value="${escapeHtml(ag.id)}" ${checked} onchange="onModalAgencyCheckboxChange('${escapeHtml(ag.id)}', this.checked)" class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500">
+              <span class="text-xs leading-tight">
+                <strong class="text-slate-800">${escapeHtml(ag.short)}</strong> - <span class="text-slate-600">${escapeHtml(ag.name)}</span>
+              </span>
+            </label>
+          `;
+        }).join("");
+      }
+
+      renderModalAgencyMethodsMatrix(selectedAgencies);
+
+      const mtContainer = document.getElementById("editMethodsContainer");
+      if (mtContainer) {
+        mtContainer.innerHTML = state.methods.map(mt => {
+          const checked = (selectedMethods || []).includes(mt.id) ? "checked" : "";
+          return `
+            <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-white">
+              <input type="checkbox" name="modalMethodCheckbox" value="${escapeHtml(mt.id)}" ${checked}>
+              <span>${mt.icon} ${escapeHtml(mt.name)}</span>
+            </label>
+          `;
+        }).join("");
+      }
+    }
+
+    function getCurrentlyCheckedModalValues(name) {
+      return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
+    }
+
+    function addCustomAgencyFromModal() {
+      const inp = document.getElementById("quickNewAgency");
+      const val = (inp?.value || "").trim();
+      if (!val) return;
+      const newId = "ag_" + Date.now();
+      state.agencies.push({
+        id: newId,
+        name: val,
+        short: val.length > 12 ? val.substring(0, 12) : val,
+        color: "bg-teal-100 text-teal-800 border-teal-300"
+      });
+      inp.value = "";
+      const curAg = getCurrentlyCheckedModalValues("modalAgencyCheckbox");
+      curAg.push(newId);
+      modalTempAgencyMethods[newId] = ["info"];
+      renderModalCheckboxes(curAg, []);
+      populateSelectOptions();
+      saveState();
+      showToast(`เพิ่มหน่วยงาน "${val}" แล้ว`);
+    }
+
+    function addCustomMethodFromModal() {
+      const inp = document.getElementById("quickNewMethod");
+      const val = (inp?.value || "").trim();
+      if (!val) return;
+      const newId = "mt_" + Date.now();
+      state.methods.push({
+        id: newId,
+        name: val,
+        short: val,
+        icon: "✨",
+        badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200"
+      });
+      inp.value = "";
+      const curAg = getCurrentlyCheckedModalValues("modalAgencyCheckbox");
+      if (curAg.length > 0) {
+        const firstAg = curAg[0];
+        if (!Array.isArray(modalTempAgencyMethods[firstAg])) modalTempAgencyMethods[firstAg] = [];
+        modalTempAgencyMethods[firstAg].push(newId);
+      }
+      renderModalCheckboxes(curAg, []);
+      populateSelectOptions();
+      saveState();
+      showToast(`เพิ่มวิธีรณรงค์ "${val}" แล้ว`);
+    }
+
+    function saveCampaignItem() {
+      const itemId = document.getElementById("editItemId").value;
+      const month = parseInt(document.getElementById("editMonth").value, 10) || 1;
+      const week = document.getElementById("editWeek").value || "W1";
+      const status = document.getElementById("editStatus").value || "planned";
+      const title = (document.getElementById("editTitle").value || "").trim();
+      const target = (document.getElementById("editTarget").value || "").trim();
+      const note = (document.getElementById("editNote").value || "").trim();
+
+      if (!title) {
+        showToast("กรุณาระบุหัวข้อประเด็นรณรงค์");
+        document.getElementById("editTitle").focus();
+        return;
+      }
+
+      const agencies = getCurrentlyCheckedModalValues("modalAgencyCheckbox");
+      const agencyMethods = {};
+      const unionMethods = new Set();
+      agencies.forEach(aid => {
+        const mts = Array.isArray(modalTempAgencyMethods[aid]) ? [...modalTempAgencyMethods[aid]] : [];
+        agencyMethods[aid] = mts;
+        mts.forEach(m => unionMethods.add(m));
+      });
+      const methods = Array.from(unionMethods);
+
+      if (itemId) {
+        const idx = state.campaigns.findIndex(c => c.id === itemId);
+        if (idx >= 0) {
+          state.campaigns[idx] = { ...state.campaigns[idx], month, week, status, title, target, note, agencies, methods, agencyMethods };
+        }
+      } else {
+        state.campaigns.push({
+          id: "c_" + Date.now(),
+          month,
+          week,
+          status,
+          title,
+          target,
+          note,
+          agencies,
+          methods,
+          agencyMethods
+        });
+      }
+
+      saveState();
+      closeCampaignModal();
+      applyFilters();
+      showToast("บันทึกข้อมูลหน่วยงานและรูปแบบสื่อเรียบร้อยแล้ว");
+    }
+
+    function deleteCurrentModalItem() {
+      const itemId = document.getElementById("editItemId").value;
+      if (!itemId) return;
+      state.campaigns = state.campaigns.filter(c => c.id !== itemId);
+      saveState();
+      closeCampaignModal();
+      applyFilters();
+      showToast("ลบประเด็นรณรงค์แล้ว");
+    }
+
+    function closeCampaignModal() {
+      document.getElementById("campaignModal").classList.add("hidden");
+    }
+
+    // ==========================================
+    // 11. MODAL: MANAGE AGENCIES, CAMPAIGNS & METHODS (ADD / EDIT / DELETE)
+    // ==========================================
+    function quickRemoveAgencyFromItem(event, itemId, agencyId) {
+      if (event) event.stopPropagation();
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item || !Array.isArray(item.agencies)) return;
+      normalizeCampaignItem(item);
+      const ag = getAgencyById(agencyId);
+      item.agencies = item.agencies.filter(a => a !== agencyId);
+      if (item.agencyMethods) delete item.agencyMethods[agencyId];
+      syncUnionMethodsFromAgencyMethods(item);
+      saveState();
+      applyFilters();
+      showToast(`ปรับลดหน่วยงาน "${ag.short}" ออกจากประเด็นแล้ว`);
+    }
+
+    function quickAddAgencyToItem(itemId, agencyId) {
+      if (!agencyId) return;
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item) return;
+      normalizeCampaignItem(item);
+      if (!item.agencies.includes(agencyId)) {
+        item.agencies.push(agencyId);
+        if (!item.agencyMethods) item.agencyMethods = {};
+        item.agencyMethods[agencyId] = ["info"];
+        syncUnionMethodsFromAgencyMethods(item);
+        saveState();
+        applyFilters();
+        const ag = getAgencyById(agencyId);
+        showToast(`เพิ่มหน่วยงาน "${ag.short}" ในประเด็นแล้ว`);
+      }
+    }
+
+    function quickDeleteCampaign(event, itemId) {
+      if (event) event.stopPropagation();
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item) return;
+      state.campaigns = state.campaigns.filter(c => c.id !== itemId);
+      saveState();
+      applyFilters();
+      if (!document.getElementById("masterModal").classList.contains("hidden")) {
+        renderMasterLists();
+      }
+      showToast(`ลบประเด็น "${item.title}" เรียบร้อยแล้ว`);
+    }
+
+    function openMasterModal(defaultTab = "agencies") {
+      populateMasterMonthSelects();
+      switchMasterTab(defaultTab);
+      renderMasterLists();
+      document.getElementById("masterModal").classList.remove("hidden");
+    }
+
+    function openMasterTabCampaignsQuick() {
+      switchMasterTab("campaigns");
+    }
+
+    function openMasterOverviewForMonth(monthId) {
+      openMasterModal("campaigns");
+      const sel = document.getElementById("masterOverviewMonthSelect");
+      if (sel) {
+        sel.value = String(monthId);
+        renderMasterOverviewList();
+      }
+    }
+
+    function closeMasterModal() {
+      document.getElementById("masterModal").classList.add("hidden");
+    }
+
+    function switchMasterTab(tabName) {
+      state.masterActiveTab = tabName;
+      const panels = {
+        agencies: document.getElementById("masterPanelAgencies"),
+        campaigns: document.getElementById("masterPanelCampaigns"),
+        methods: document.getElementById("masterPanelMethods")
+      };
+      const btns = {
+        agencies: document.getElementById("masterTabBtnAgencies"),
+        campaigns: document.getElementById("masterTabBtnCampaigns"),
+        methods: document.getElementById("masterTabBtnMethods")
+      };
+      Object.keys(panels).forEach(k => {
+        if (!panels[k] || !btns[k]) return;
+        if (k === tabName) {
+          panels[k].classList.remove("hidden");
+          btns[k].className = "px-4 py-2 rounded-t-xl font-bold text-xs sm:text-sm bg-white text-emerald-800 border-t border-x border-slate-200 shadow-2xs";
+        } else {
+          panels[k].classList.add("hidden");
+          btns[k].className = "px-4 py-2 rounded-t-xl font-bold text-xs sm:text-sm text-slate-600 hover:text-slate-900";
+        }
+      });
+    }
+
+    function populateMasterMonthSelects() {
+      const mFilter = document.getElementById("masterCampaignMonthFilter");
+      if (mFilter) {
+        const cur = mFilter.value || "all";
+        mFilter.innerHTML = `<option value="all">แสดงทุกเดือน (ม.ค. – ธ.ค.)</option>` +
+          MONTHS.map(m => `<option value="${m.id}">เดือน${m.name}</option>`).join("");
+        mFilter.value = cur;
+      }
+      const qMonth = document.getElementById("masterQuickAddMonth");
+      if (qMonth && !qMonth.innerHTML) {
+        qMonth.innerHTML = MONTHS.map(m => `<option value="${m.id}">${m.id}. ${m.short}</option>`).join("");
+      }
+      const ovMonth = document.getElementById("masterOverviewMonthSelect");
+      if (ovMonth) {
+        const curOv = ovMonth.value || "1";
+        ovMonth.innerHTML = MONTHS.map(m => `<option value="${m.id}">เดือน${m.name}</option>`).join("");
+        ovMonth.value = curOv;
+      }
+    }
+
+    function updateMasterTabCounts() {
+      const cAg = document.getElementById("masterCountAgencies");
+      const cCp = document.getElementById("masterCountCampaigns");
+      const cMt = document.getElementById("masterCountMethods");
+      if (cAg) cAg.textContent = state.agencies.length;
+      if (cCp) cCp.textContent = state.campaigns.length;
+      if (cMt) cMt.textContent = state.methods.length;
+    }
+
+    function renderMasterLists() {
+      updateMasterTabCounts();
+
+      // 1. Render Agencies List with inline edit & delete (reduce)
+      const agList = document.getElementById("masterAgencyList");
+      if (agList) {
+        if (state.agencies.length === 0) {
+          agList.innerHTML = `<div class="col-span-2 p-6 text-center text-slate-400">ยังไม่มีรายชื่อหน่วยงาน</div>`;
+        } else {
+          agList.innerHTML = state.agencies.map(ag => {
+            const usedCount = state.campaigns.filter(c => (c.agencies || []).includes(ag.id)).length;
+            return `
+              <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/80 flex flex-col justify-between gap-2">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="inline-block px-2 py-0.5 rounded text-xs font-bold border ${ag.color}">${escapeHtml(ag.short)}</span>
+                      <span class="text-[11px] text-slate-400">(${usedCount} ประเด็น)</span>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-800 mt-1 break-words">${escapeHtml(ag.name)}</p>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button onclick="toggleEditAgencyRow('${escapeHtml(ag.id)}')" class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-semibold">แก้ไข</button>
+                    <button onclick="deleteAgencyFromMaster('${escapeHtml(ag.id)}')" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-semibold">ลบ/ปรับลด</button>
+                  </div>
+                </div>
+                <div id="editAgencyRow_${escapeHtml(ag.id)}" class="hidden pt-2 border-t border-slate-200 flex items-center gap-1.5">
+                  <input id="editAgencyShort_${escapeHtml(ag.id)}" type="text" value="${escapeHtml(ag.short)}" class="w-24 px-2 py-1 rounded border border-slate-300 bg-white text-xs" placeholder="ชื่อย่อ">
+                  <input id="editAgencyName_${escapeHtml(ag.id)}" type="text" value="${escapeHtml(ag.name)}" class="flex-1 px-2 py-1 rounded border border-slate-300 bg-white text-xs" placeholder="ชื่อหน่วยงาน">
+                  <button onclick="saveEditAgencyRow('${escapeHtml(ag.id)}')" class="px-2.5 py-1 rounded bg-emerald-700 text-white text-xs font-semibold">บันทึก</button>
+                </div>
+              </div>
+            `;
+          }).join("");
+        }
+      }
+
+      // 2. Render Methods List with inline edit & delete (reduce)
+      const mtList = document.getElementById("masterMethodList");
+      if (mtList) {
+        if (state.methods.length === 0) {
+          mtList.innerHTML = `<div class="col-span-2 p-6 text-center text-slate-400">ยังไม่มีรูปแบบสื่อรณรงค์</div>`;
+        } else {
+          mtList.innerHTML = state.methods.map(mt => {
+            const usedCount = state.campaigns.filter(c => (c.methods || []).includes(mt.id)).length;
+            return `
+              <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/80 flex flex-col justify-between gap-2">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <span class="text-xs font-bold text-slate-800">${mt.icon} ${escapeHtml(mt.name)}</span>
+                    <span class="text-[11px] text-slate-400 ml-1">(${usedCount} ประเด็น)</span>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button onclick="toggleEditMethodRow('${escapeHtml(mt.id)}')" class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-semibold">แก้ไข</button>
+                    <button onclick="deleteMethodFromMaster('${escapeHtml(mt.id)}')" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-semibold">ลบ/ปรับลด</button>
+                  </div>
+                </div>
+                <div id="editMethodRow_${escapeHtml(mt.id)}" class="hidden pt-2 border-t border-slate-200 flex items-center gap-1.5">
+                  <input id="editMethodName_${escapeHtml(mt.id)}" type="text" value="${escapeHtml(mt.name)}" class="flex-1 px-2 py-1 rounded border border-slate-300 bg-white text-xs">
+                  <button onclick="saveEditMethodRow('${escapeHtml(mt.id)}')" class="px-2.5 py-1 rounded bg-emerald-700 text-white text-xs font-semibold">บันทึก</button>
+                </div>
+              </div>
+            `;
+          }).join("");
+        }
+      }
+
+      // 3. Render Campaigns & Monthly Overviews
+      renderMasterCampaignsList();
+      renderMasterOverviewList();
+    }
+
+    function toggleEditAgencyRow(agId) {
+      const el = document.getElementById("editAgencyRow_" + agId);
+      if (el) el.classList.toggle("hidden");
+    }
+
+    function saveEditAgencyRow(agId) {
+      const shortVal = (document.getElementById("editAgencyShort_" + agId)?.value || "").trim();
+      const nameVal = (document.getElementById("editAgencyName_" + agId)?.value || "").trim();
+      if (!nameVal) return;
+      const ag = state.agencies.find(a => a.id === agId);
+      if (!ag) return;
+      ag.name = nameVal;
+      ag.short = shortVal || nameVal;
+      saveState();
+      populateSelectOptions();
+      renderMasterLists();
+      applyFilters();
+      showToast(`แก้ไขข้อมูลหน่วยงาน "${ag.short}" แล้ว`);
+    }
+
+    function deleteAgencyFromMaster(agId) {
+      const ag = getAgencyById(agId);
+      state.agencies = state.agencies.filter(a => a.id !== agId);
+      // Remove from all campaigns that referenced this agency
+      state.campaigns.forEach(c => {
+        if (Array.isArray(c.agencies)) {
+          c.agencies = c.agencies.filter(id => id !== agId);
+        }
+      });
+      saveState();
+      populateSelectOptions();
+      renderMasterLists();
+      applyFilters();
+      showToast(`ปรับลด/ลบหน่วยงาน "${ag.short}" ออกจากระบบแล้ว`);
+    }
+
+    function toggleEditMethodRow(mtId) {
+      const el = document.getElementById("editMethodRow_" + mtId);
+      if (el) el.classList.toggle("hidden");
+    }
+
+    function saveEditMethodRow(mtId) {
+      const nameVal = (document.getElementById("editMethodName_" + mtId)?.value || "").trim();
+      if (!nameVal) return;
+      const mt = state.methods.find(m => m.id === mtId);
+      if (!mt) return;
+      mt.name = nameVal;
+      mt.short = nameVal.length > 18 ? nameVal.substring(0, 18) : nameVal;
+      saveState();
+      populateSelectOptions();
+      renderMasterLists();
+      applyFilters();
+      showToast(`แก้ไขรูปแบบสื่อ "${mt.short}" แล้ว`);
+    }
+
+    function deleteMethodFromMaster(mtId) {
+      const mt = getMethodById(mtId);
+      state.methods = state.methods.filter(m => m.id !== mtId);
+      state.campaigns.forEach(c => {
+        if (Array.isArray(c.methods)) {
+          c.methods = c.methods.filter(id => id !== mtId);
+        }
+      });
+      saveState();
+      populateSelectOptions();
+      renderMasterLists();
+      applyFilters();
+      showToast(`ปรับลด/ลบรูปแบบสื่อ "${mt.short}" ออกจากระบบแล้ว`);
+    }
+
+    function renderMasterCampaignsList() {
+      const listEl = document.getElementById("masterCampaignList");
+      const countEl = document.getElementById("masterFilteredCampaignCount");
+      if (!listEl) return;
+
+      const mVal = document.getElementById("masterCampaignMonthFilter")?.value || "all";
+      const q = (document.getElementById("masterCampaignSearch")?.value || "").trim().toLowerCase();
+
+      const items = state.campaigns.filter(c => {
+        if (mVal !== "all" && String(c.month) !== String(mVal)) return false;
+        if (q && !c.title.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      if (countEl) countEl.textContent = `แสดง ${items.length} ประเด็นรณรงค์`;
+      const selectAllBox = document.getElementById("masterSelectAllCampaigns");
+      if (selectAllBox) selectAllBox.checked = false;
+
+      if (items.length === 0) {
+        listEl.innerHTML = `<div class="p-6 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">ไม่พบประเด็นรณรงค์ในเงื่อนไขที่เลือก</div>`;
+        return;
+      }
+
+      listEl.innerHTML = items.map(item => {
+        const mObj = MONTHS.find(m => m.id === item.month) || { short: item.month };
+        normalizeCampaignItem(item);
+        const agBadges = (item.agencies || []).map(aid => {
+          const ag = getAgencyById(aid);
+          const agMts = ((item.agencyMethods && item.agencyMethods[aid]) || []).map(m => getMethodById(m).short).join(", ");
+          return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${ag.color}">
+            <span>${escapeHtml(ag.short)}${agMts ? ': ' + escapeHtml(agMts) : ''}</span>
+            <button onclick="quickRemoveAgencyFromItem(event, '${escapeHtml(item.id)}', '${escapeHtml(aid)}'); renderMasterCampaignsList();" title="ปรับลดหน่วยงานนี้ออก" class="hover:text-rose-600 font-bold">×</button>
+          </span>`;
+        }).join(" ");
+
+        return `
+          <div class="p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-start gap-2.5 flex-1 min-w-[240px]">
+              <input type="checkbox" name="masterCampaignSelect" value="${escapeHtml(item.id)}" class="mt-1 rounded text-emerald-600">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 rounded bg-emerald-800 text-white font-bold text-[10px]">${escapeHtml(mObj.short)} - ${escapeHtml(item.week)}</span>
+                  <input id="masterInlineTitle_${escapeHtml(item.id)}" type="text" value="${escapeHtml(item.title)}" onchange="saveMasterInlineCampaignTitle('${escapeHtml(item.id)}', this.value)" class="flex-1 min-w-[180px] font-semibold text-slate-800 text-xs px-2 py-0.5 rounded border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white bg-transparent">
+                </div>
+                <div class="flex flex-wrap items-center gap-1 mt-1">
+                  <span class="text-[10px] text-slate-400">หน่วยงาน:</span>
+                  ${agBadges || `<span class="text-[10px] text-rose-500">ยังไม่ระบุ</span>`}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="closeMasterModal(); openCampaignModal('${escapeHtml(item.id)}');" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">ตั้งค่าละเอียด</button>
+              <button onclick="quickDeleteCampaign(event, '${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-semibold">🗑️ ลบประเด็น</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function saveMasterInlineCampaignTitle(itemId, newTitle) {
+      const trimmed = (newTitle || "").trim();
+      if (!trimmed) return;
+      const item = state.campaigns.find(c => c.id === itemId);
+      if (!item) return;
+      item.title = trimmed;
+      saveState();
+      applyFilters();
+      showToast("อัปเดตชื่อประเด็นรณรงค์แล้ว");
+    }
+
+    function toggleSelectAllMasterCampaigns(checked) {
+      document.querySelectorAll('input[name="masterCampaignSelect"]').forEach(cb => {
+        cb.checked = checked;
+      });
+    }
+
+    function bulkDeleteSelectedCampaigns() {
+      const selectedIds = Array.from(document.querySelectorAll('input[name="masterCampaignSelect"]:checked')).map(cb => cb.value);
+      if (selectedIds.length === 0) {
+        showToast("กรุณาติ๊กเลือกประเด็นรณรงค์ที่ต้องการลบก่อน");
+        return;
+      }
+      state.campaigns = state.campaigns.filter(c => !selectedIds.includes(c.id));
+      saveState();
+      renderMasterLists();
+      applyFilters();
+      showToast(`ปรับลด/ลบประเด็นรณรงค์ที่เลือกจำนวน ${selectedIds.length} รายการแล้ว`);
+    }
+
+    function quickAddCampaignFromMaster() {
+      const mId = parseInt(document.getElementById("masterQuickAddMonth")?.value || "1", 10) || 1;
+      const wCode = document.getElementById("masterQuickAddWeek")?.value || "W1";
+      const titleInp = document.getElementById("masterQuickAddTitle");
+      const title = (titleInp?.value || "").trim();
+      if (!title) {
+        showToast("กรุณาพิมพ์ชื่อประเด็นรณรงค์ที่ต้องการเพิ่ม");
+        titleInp?.focus();
+        return;
+      }
+      state.campaigns.push({
+        id: "c_" + Date.now(),
+        month: mId,
+        week: wCode,
+        title,
+        agencies: ["brc"],
+        methods: ["info", "shortvideo"],
+        status: "planned",
+        target: "",
+        note: ""
+      });
+      if (titleInp) titleInp.value = "";
+      saveState();
+      renderMasterLists();
+      applyFilters();
+      showToast(`เพิ่มประเด็น "${title}" แล้ว`);
+    }
+
+    function renderMasterOverviewList() {
+      const container = document.getElementById("masterOverviewList");
+      if (!container) return;
+      const mId = parseInt(document.getElementById("masterOverviewMonthSelect")?.value || "1", 10) || 1;
+      const mObj = MONTHS.find(m => m.id === mId);
+      if (!mObj) return;
+
+      if (!Array.isArray(mObj.overview) || mObj.overview.length === 0) {
+        container.innerHTML = `<div class="col-span-2 p-4 text-center text-slate-400 bg-slate-50 rounded-lg border border-slate-200">ไม่มีหัวข้อภาพรวมประจำเดือนนี้</div>`;
+        return;
+      }
+
+      container.innerHTML = mObj.overview.map((txt, idx) => `
+        <div class="p-2 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between gap-2">
+          <input type="text" value="${escapeHtml(txt)}" onchange="editMonthOverviewItem(${mId}, ${idx}, this.value)" class="flex-1 bg-transparent text-xs text-slate-800 px-1.5 py-0.5 rounded border border-transparent hover:border-slate-300 focus:bg-white focus:border-emerald-500">
+          <button onclick="removeMonthOverviewItem(${mId}, ${idx})" class="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold shrink-0">ลบ</button>
+        </div>
+      `).join("");
+    }
+
+    function addOverviewFromMaster() {
+      const mId = parseInt(document.getElementById("masterOverviewMonthSelect")?.value || "1", 10) || 1;
+      const inp = document.getElementById("masterNewOverviewText");
+      const val = (inp?.value || "").trim();
+      if (!val) return;
+      const mObj = MONTHS.find(m => m.id === mId);
+      if (!mObj) return;
+      mObj.overview.push(val);
+      inp.value = "";
+      saveState();
+      renderMasterOverviewList();
+      applyFilters();
+      showToast(`เพิ่มประเด็นหลักเดือน${mObj.name}แล้ว`);
+    }
+
+    function editMonthOverviewItem(monthId, idx, newVal) {
+      const trimmed = (newVal || "").trim();
+      const mObj = MONTHS.find(m => m.id === monthId);
+      if (!mObj || !mObj.overview[idx]) return;
+      if (!trimmed) {
+        removeMonthOverviewItem(monthId, idx);
+        return;
+      }
+      mObj.overview[idx] = trimmed;
+      saveState();
+      applyFilters();
+      showToast("แก้ไขประเด็นหลักประจำเดือนแล้ว");
+    }
+
+    function removeMonthOverviewItem(monthId, idx) {
+      const mObj = MONTHS.find(m => m.id === monthId);
+      if (!mObj || !Array.isArray(mObj.overview)) return;
+      mObj.overview.splice(idx, 1);
+      saveState();
+      renderMasterOverviewList();
+      applyFilters();
+      showToast(`ปรับลดหัวข้อภาพรวมเดือน${mObj.name}แล้ว`);
+    }
+
+    function addAgencyFromMaster() {
+      const nameInp = document.getElementById("masterNewAgencyName");
+      const shortInp = document.getElementById("masterNewAgencyShort");
+      const name = (nameInp?.value || "").trim();
+      const short = (shortInp?.value || "").trim() || name;
+      if (!name) {
+        showToast("กรุณาระบุชื่อหน่วยงาน");
+        nameInp?.focus();
+        return;
+      }
+
+      state.agencies.push({
+        id: "ag_" + Date.now(),
+        name,
+        short,
+        color: "bg-teal-100 text-teal-800 border-teal-300"
+      });
+      nameInp.value = "";
+      shortInp.value = "";
+      saveState();
+      populateSelectOptions();
+      renderMasterLists();
+      applyFilters();
+      showToast(`เพิ่มหน่วยงาน "${short}" แล้ว`);
+    }
+
+    function addMethodFromMaster() {
+      const nameInp = document.getElementById("masterNewMethodName");
+      const name = (nameInp?.value || "").trim();
+      if (!name) {
+        showToast("กรุณาระบุชื่อรูปแบบสื่อรณรงค์");
+        nameInp?.focus();
+        return;
+      }
+
+      state.methods.push({
+        id: "mt_" + Date.now(),
+        name,
+        short: name,
+        icon: "✨",
+        badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200"
+      });
+      nameInp.value = "";
+      saveState();
+      populateSelectOptions();
+      renderMasterLists();
+      applyFilters();
+      showToast(`เพิ่มวิธีรณรงค์ "${name}" แล้ว`);
+    }
+
+    // ==========================================
+    // 12. EXPORT & RESET FUNCTIONS
+    // ==========================================
+    function toggleExportDropdown() {
+      const menu = document.getElementById("exportDropdown");
+      if (menu) menu.classList.toggle("hidden");
+    }
+
+    document.addEventListener("click", (e) => {
+      const btn = document.getElementById("btnExportMenu");
+      const menu = document.getElementById("exportDropdown");
+      if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add("hidden");
+      }
+    });
+
+    function exportCSV() {
+      const headers = ["ลำดับเดือน", "เดือน", "สัปดาห์", "ประเด็นรณรงค์", "หน่วยงานที่ดำเนินการ (กรมควบคุมโรค)", "วิธีการรณรงค์ / รูปแบบสื่อ", "สถานะการผลิต", "กลุ่มเป้าหมาย", "หมายเหตุ/ช่องทาง"];
+      const rows = state.campaigns.map(item => {
+        normalizeCampaignItem(item);
+        const mObj = MONTHS.find(m => m.id === item.month);
+        const agNames = (item.agencies || []).map(a => {
+          const ag = getAgencyById(a);
+          const agMts = ((item.agencyMethods && item.agencyMethods[a]) || []).map(m => getMethodById(m).short).join(", ");
+          return `${ag.short}: ${agMts || 'ยังไม่ระบุสื่อ'}`;
+        }).join(" | ");
+        const mtNames = (item.methods || []).map(m => getMethodById(m).name).join("; ");
+        const stLabel = (STATUS_CONFIG[item.status] || STATUS_CONFIG.planned).label;
+        return [
+          item.month,
+          mObj ? mObj.name : item.month,
+          item.week,
+          item.title,
+          agNames,
+          mtNames,
+          stLabel,
+          item.target || "",
+          item.note || ""
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+      });
+
+      const csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ปฏิทินรณรงค์_ผลิตContent_กรมควบคุมโรค.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      document.getElementById("exportDropdown")?.classList.add("hidden");
+      showToast("ดาวน์โหลดไฟล์ CSV สำหรับเปิดใน Excel แล้ว");
+    }
+
+    function exportJSON() {
+      const dataStr = JSON.stringify(state, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ddc_campaign_calendar_data.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      document.getElementById("exportDropdown")?.classList.add("hidden");
+      showToast("ส่งออกไฟล์ JSON เรียบร้อยแล้ว");
+    }
+
+    function exportStandaloneHTML() {
+      let existingScript = document.getElementById("injectedSavedState");
+      if (!existingScript) {
+        existingScript = document.createElement("script");
+        existingScript.id = "injectedSavedState";
+        document.head.appendChild(existingScript);
+      }
+      existingScript.textContent = "window.__SAVED_STATE__ = " + JSON.stringify({
+        agencies: state.agencies,
+        methods: state.methods,
+        campaigns: state.campaigns,
+        monthOverviews: state.monthOverviews
+      }) + ";";
+      const currentHtml = document.documentElement.outerHTML;
+      const blob = new Blob(["<!DOCTYPE html>\n" + currentHtml], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ddc_campaign_calendar.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      document.getElementById("exportDropdown")?.classList.add("hidden");
+      showToast("ดาวน์โหลดไฟล์ HTML เรียบร้อยแล้ว");
+    }
+
+    function openResetConfirmModal() {
+      document.getElementById("exportDropdown")?.classList.add("hidden");
+      document.getElementById("resetConfirmModal").classList.remove("hidden");
+    }
+
+    function closeResetConfirmModal() {
+      document.getElementById("resetConfirmModal").classList.add("hidden");
+    }
+
+    function confirmResetData() {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+      state.agencies = JSON.parse(JSON.stringify(DEFAULT_AGENCIES));
+      state.methods = JSON.parse(JSON.stringify(DEFAULT_METHODS));
+      state.campaigns = JSON.parse(JSON.stringify(DEFAULT_CAMPAIGNS));
+      state.monthOverviews = buildDefaultMonthOverviewsMap();
+      syncMonthsOverviewsFromState();
+      closeResetConfirmModal();
+      populateSelectOptions();
+      applyFilters();
+      showToast("รีเซ็ตข้อมูลกลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว");
+    }
+
+    // Initialize on load
+    window.addEventListener("DOMContentLoaded", () => {
+      loadState();
+      populateSelectOptions();
+      applyFilters();
+    });
+  </script>
+</body>
+</html>
